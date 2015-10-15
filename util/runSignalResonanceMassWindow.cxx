@@ -7,7 +7,7 @@
  * Executable for Hgamma analysis framework to analyse mass windows
  */
 
-#include "SignalResonanceMassWindow/SignalResonanceMassWindow.h"
+#include "bbyyAnalysis/SignalResonanceMassWindow.h"
 #include "HGamAnalysisFramework/RunUtils.h"
 
 int main(int argc, char *argv[])

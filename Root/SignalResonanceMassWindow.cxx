@@ -7,7 +7,7 @@
  * Package for Hgamma analysis framework to determine optimal mass window
  */
 
-#include "SignalResonanceMassWindow/SignalResonanceMassWindow.h"
+#include "bbyyAnalysis/SignalResonanceMassWindow.h"
 #include "HGamAnalysisFramework/HgammaIncludes.h"
 
 #include <EventLoop/Worker.h>
@@ -90,6 +90,7 @@ EL::StatusCode SignalResonanceMassWindow::createOutput()
   histoStore()->createTH1F("m_yyjj_mHconstraint_0tag", 2501, -1.0, 5001.0,";0 tag, mHconstraint, #it{m}_{bbyy} [GeV];N_{events}");
   histoStore()->createTH1F("m_yyjj_mHconstraint_1tag", 2501, -1.0, 5001.0,";1 tag, mHconstraint, #it{m}_{bbyy} [GeV];N_{events}");
   histoStore()->createTH1F("m_yyjj_mHconstraint_2tag", 2501, -1.0, 5001.0,";2 tag, mHconstraint, #it{m}_{bbyy} [GeV];N_{events}");
+  return EL::StatusCode::SUCCESS;
 }
 
 

@@ -1,4 +1,4 @@
-#include "ResonanceWidthStudies/ResonanceWidthStudies.h"
+#include "bbyyAnalysis/ResonanceWidthStudies.h"
 #include "HGamAnalysisFramework/RunUtils.h"
 
 int main(int argc, char *argv[])

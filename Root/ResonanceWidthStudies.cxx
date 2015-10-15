@@ -1,4 +1,13 @@
-#include "ResonanceWidthStudies/ResonanceWidthStudies.h"
+/**
+ * @file   ResonanceWidthStudies.cxx
+ * @Author James Robinson (james.robinson@cern.ch)
+ * @date   22nd May 2015
+ * @brief  Study interference effects H->hh->bbyy
+ *
+ * Package for Hgamma analysis framework to study interference effects
+ */
+
+#include "bbyyAnalysis/ResonanceWidthStudies.h"
 #include "HGamAnalysisFramework/HgammaIncludes.h"
 #include "HGamAnalysisFramework/TruthUtils.h"
 #include <boost/format.hpp>
