@@ -161,15 +161,15 @@ EL::StatusCode SignalResonanceMassWindow::execute()
 
   // Force recalculation with Higgs constraint
   if( b_jets_0->size() >= 2 ) {
-    TLorentzVector bb = ApplyHiggsMassScaling( b_jets_0->at(0)->p4() + b_jets_0->at(1)->p4() ) ;
+    TLorentzVector bb = ApplyHiggsMassScaling( b_jets_0->at(0)->p4() + b_jets_0->at(1)->p4() );
     m_m_yyjj_mHconstraint_0tag = (yy + bb).M() / HG::GeV;
   }
   if( b_jets_1->size() >= 2 ) {
-    TLorentzVector bb = ApplyHiggsMassScaling( b_jets_1->at(0)->p4() + b_jets_1->at(1)->p4() ) ;
+    TLorentzVector bb = ApplyHiggsMassScaling( b_jets_1->at(0)->p4() + b_jets_1->at(1)->p4() );
     m_m_yyjj_mHconstraint_1tag = (yy + bb).M() / HG::GeV;
   }
   if( b_jets_2->size() >= 2 ) {
-    TLorentzVector bb = ApplyHiggsMassScaling( b_jets_2->at(0)->p4() + b_jets_2->at(1)->p4() ) ;
+    TLorentzVector bb = ApplyHiggsMassScaling( b_jets_2->at(0)->p4() + b_jets_2->at(1)->p4() );
     m_m_yyjj_mHconstraint_2tag = (yy + bb).M() / HG::GeV;
   }
 
