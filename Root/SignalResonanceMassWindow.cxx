@@ -128,10 +128,12 @@ EL::StatusCode SignalResonanceMassWindow::execute()
   // Get event info
   const xAOD::EventInfo* eventInfo(0);
   HG_CHECK( "execute()", m_event->retrieve(eventInfo, "EventInfo") )
+  const xAOD::EventInfo* HGammaEventInfo(0);
+  HG_CHECK( "execute()", m_event->retrieve(HGammaEventInfo, "HGamEventInfo") )
 
   /// Fetch selected photons
   const xAOD::PhotonContainer *photons(0);
-  HG_CHECK( "execute()", m_event->retrieve(photons, "HGamPhotons") );
+  HG_CHECK( "execute()", m_event->retrieve(photons, "HH2yybbPhotons") );
 
   // Require at least two photons
   if( photons->size() < 2 ) { return sc; }
@@ -141,37 +143,28 @@ EL::StatusCode SignalResonanceMassWindow::execute()
   if( (yy.M() / HG::GeV) < m_m_yy_low || (yy.M() / HG::GeV) > m_m_yy_high ) { return sc; }
   if( m_debug ) { Info( "execute()", (boost::format( "Found m_yy (%s) in range %s -> %s" ) % (yy.M() / HG::GeV) % m_m_yy_low % m_m_yy_high ).str().c_str() ); }
 
-  // Fetch selected jet collections
-  const xAOD::JetContainer *b_jets_0(0);
-  HG_CHECK( "execute()", m_event->retrieve(b_jets_0, "HGamAntiKt4EMTopoJets_AllSelZeroTag") );
-  const xAOD::JetContainer *b_jets_1(0);
-  HG_CHECK( "execute()", m_event->retrieve(b_jets_1, "HGamAntiKt4EMTopoJets_AllSelOneTag") );
-  const xAOD::JetContainer *b_jets_2(0);
-  HG_CHECK( "execute()", m_event->retrieve(b_jets_2, "HGamAntiKt4EMTopoJets_AllSelTwoTag") );
+  // Retrieve b-tagging category: -1:no jets; 0:two light jets; 1:1 light/1 b-jet; 2:2 b-jets
+  int bTagCategory = HGammaEventInfo->auxdata<int>("bTagCategory");
+  if( bTagCategory < 0 ) { return sc; }
 
   // Get the uncorrected masses
-  m_m_yyjj_0tag = eventInfo->auxdata<double>("HGamAntiKt4EMTopoJets_AllSelZeroTag_m_yyjj");
-  m_m_yyjj_1tag = eventInfo->auxdata<double>("HGamAntiKt4EMTopoJets_AllSelOneTag_m_yyjj");
-  m_m_yyjj_2tag = eventInfo->auxdata<double>("HGamAntiKt4EMTopoJets_AllSelTwoTag_m_yyjj");
+  double m_yyjj = HGammaEventInfo->auxdata<float>("m_yyjj") / HG::GeV;
+  m_m_yyjj_0tag = bTagCategory == 0 ? m_yyjj : -99;
+  m_m_yyjj_1tag = bTagCategory == 1 ? m_yyjj : -99;
+  m_m_yyjj_2tag = bTagCategory == 2 ? m_yyjj : -99;
+
+  // Retrieve jet collection
+  const xAOD::JetContainer *selected_jets(0);
+  HG_CHECK( "execute()", m_event->retrieve(selected_jets, "HH2yybbAntiKt4EMTopoJets_AllSelAnyTag") );
+
+  // Construct Higgs-scaled masses
+  TLorentzVector jj = ApplyHiggsMassScaling( selected_jets->at(0)->p4() + selected_jets->at(1)->p4() );
+  double m_yyjj_mHconstraint = (yy + jj).M() / HG::GeV;
 
   // Set initial values outside the acceptance
-  m_m_yyjj_mHconstraint_0tag = -99;
-  m_m_yyjj_mHconstraint_1tag = -99;
-  m_m_yyjj_mHconstraint_2tag = -99;
-
-  // Force recalculation with Higgs constraint
-  if( b_jets_0->size() >= 2 ) {
-    TLorentzVector bb = ApplyHiggsMassScaling( b_jets_0->at(0)->p4() + b_jets_0->at(1)->p4() );
-    m_m_yyjj_mHconstraint_0tag = (yy + bb).M() / HG::GeV;
-  }
-  if( b_jets_1->size() >= 2 ) {
-    TLorentzVector bb = ApplyHiggsMassScaling( b_jets_1->at(0)->p4() + b_jets_1->at(1)->p4() );
-    m_m_yyjj_mHconstraint_1tag = (yy + bb).M() / HG::GeV;
-  }
-  if( b_jets_2->size() >= 2 ) {
-    TLorentzVector bb = ApplyHiggsMassScaling( b_jets_2->at(0)->p4() + b_jets_2->at(1)->p4() );
-    m_m_yyjj_mHconstraint_2tag = (yy + bb).M() / HG::GeV;
-  }
+  m_m_yyjj_mHconstraint_0tag = bTagCategory == 0 ? m_yyjj_mHconstraint : -99;
+  m_m_yyjj_mHconstraint_1tag = bTagCategory == 1 ? m_yyjj_mHconstraint : -99;
+  m_m_yyjj_mHconstraint_2tag = bTagCategory == 2 ? m_yyjj_mHconstraint : -99;
 
   if( m_debug ) { Info( "execute()", (boost::format("m_yyjj 0 tag: %s, with bb constraint %s") % m_m_yyjj_0tag % m_m_yyjj_mHconstraint_0tag).str().c_str() ); }
   if( m_debug ) { Info( "execute()", (boost::format("m_yyjj 1 tag: %s, with bb constraint %s") % m_m_yyjj_1tag % m_m_yyjj_mHconstraint_1tag).str().c_str() ); }
