@@ -3,8 +3,7 @@ import glob
 import re
 import subprocess
 
-patterns = { "data15":"eos:h008/data_25ns/", "mc15":"eos:h008/mc_25ns/.*hh_yybb.*" }
-
+patterns = { "data15":"eos:h008/data_25ns/", "mc15":"eos:h008/mc_25ns/.*hh_yybb.*", "mc15_bkg":"eos:h008/mc_25ns/MGPy8_y[bjy][bj][bj].*" }
 
 for list_pattern, dataset_pattern in sorted( patterns.items() ) :
   print "Working on",list_pattern
