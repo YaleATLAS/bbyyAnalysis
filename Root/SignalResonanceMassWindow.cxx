@@ -21,12 +21,14 @@ ClassImp(SignalResonanceMassWindow)
 SignalResonanceMassWindow::SignalResonanceMassWindow(const char *name)
 : HgammaAnalysis(name)
 , m_output_tree(0)
-, m_m_yyjj_0tag(0)
-, m_m_yyjj_1tag(0)
-, m_m_yyjj_2tag(0)
-, m_m_yyjj_mHconstraint_0tag(0)
-, m_m_yyjj_mHconstraint_1tag(0)
-, m_m_yyjj_mHconstraint_2tag(0)
+, m_m_yyjj_unscaled_0tag(0)
+, m_m_yyjj_unscaled_1tag(0)
+, m_m_yyjj_unscaled_2tag(0)
+, m_m_yyjj_mHscaled_0tag(0)
+, m_m_yyjj_mHscaled_1tag(0)
+, m_m_yyjj_mHscaled_2tag(0)
+, m_weight_pileup(0)
+, m_weight_xslumi(0)
 {
   /// Here you put any code for the base initialization of variables,
   /// e.g. initialize all pointers to 0.  Note that you should only put
@@ -61,18 +63,20 @@ EL::StatusCode SignalResonanceMassWindow::initialize()
   TFile *file = wk()->getOutputFile("MxAOD");
   m_output_tree = new TTree("outputTree","outputTree");
   m_output_tree->SetDirectory(file);
-  m_output_tree->Branch("m_yyjj_0tag", &m_m_yyjj_0tag);
-  m_output_tree->Branch("m_yyjj_1tag", &m_m_yyjj_1tag);
-  m_output_tree->Branch("m_yyjj_2tag", &m_m_yyjj_2tag);
-  m_output_tree->Branch("m_yyjj_mHconstraint_0tag", &m_m_yyjj_mHconstraint_0tag);
-  m_output_tree->Branch("m_yyjj_mHconstraint_1tag", &m_m_yyjj_mHconstraint_1tag);
-  m_output_tree->Branch("m_yyjj_mHconstraint_2tag", &m_m_yyjj_mHconstraint_2tag);
+  m_output_tree->Branch( "m_yyjj_unscaled_0tag", &m_m_yyjj_unscaled_0tag );
+  m_output_tree->Branch( "m_yyjj_unscaled_1tag", &m_m_yyjj_unscaled_1tag );
+  m_output_tree->Branch( "m_yyjj_unscaled_2tag", &m_m_yyjj_unscaled_2tag );
+  m_output_tree->Branch( "m_yyjj_mHscaled_0tag", &m_m_yyjj_mHscaled_0tag );
+  m_output_tree->Branch( "m_yyjj_mHscaled_1tag", &m_m_yyjj_mHscaled_1tag );
+  m_output_tree->Branch( "m_yyjj_mHscaled_2tag", &m_m_yyjj_mHscaled_2tag );
+  m_output_tree->Branch( "weight_pileup",        &m_weight_pileup        );
+  m_output_tree->Branch( "weight_xslumi",        &m_weight_xslumi        );
+  Info( "initialize()", "Initialising output tree" );
 
   // Read configuration
   m_m_yy_low  = config()->getNum("SignalResonanceMassWindow.MyyWindow.Low",  120.);
   m_m_yy_high = config()->getNum("SignalResonanceMassWindow.MyyWindow.High", 130.);
-  m_debug     = config()->getBool("SignalResonanceMassWindow.DebugMessages", false);
-  if( m_debug ) { Info( "initialize()", (boost::format( "Setting m_yy window to %s -> %s" ) % m_m_yy_low % m_m_yy_high ).str().c_str() ); }
+  Info( "initialize()", (boost::format( "Setting m_yy window to %s -> %s GeV" ) % m_m_yy_low % m_m_yy_high ).str().c_str() );
 
   // Get handle to event
   m_event = wk()->xaodEvent();
@@ -84,12 +88,14 @@ EL::StatusCode SignalResonanceMassWindow::createOutput()
   // Here you setup the histograms needed for you analysis. This method
   // gets called after the Handlers are initialized, so that the systematic
   // registry is already filled.
-  histoStore()->createTH1F("m_yyjj_0tag", 2501, -1.0, 5001.0,";0 tag, #it{m}_{bbyy} [GeV];N_{events}");
-  histoStore()->createTH1F("m_yyjj_1tag", 2501, -1.0, 5001.0,";1 tag, #it{m}_{bbyy} [GeV];N_{events}");
-  histoStore()->createTH1F("m_yyjj_2tag", 2501, -1.0, 5001.0,";2 tag, #it{m}_{bbyy} [GeV];N_{events}");
-  histoStore()->createTH1F("m_yyjj_mHconstraint_0tag", 2501, -1.0, 5001.0,";0 tag, mHconstraint, #it{m}_{bbyy} [GeV];N_{events}");
-  histoStore()->createTH1F("m_yyjj_mHconstraint_1tag", 2501, -1.0, 5001.0,";1 tag, mHconstraint, #it{m}_{bbyy} [GeV];N_{events}");
-  histoStore()->createTH1F("m_yyjj_mHconstraint_2tag", 2501, -1.0, 5001.0,";2 tag, mHconstraint, #it{m}_{bbyy} [GeV];N_{events}");
+  for( const auto& constraint : { "unscaled", "mHscaled" } ) {
+    for( const auto& tag : { "0tag", "1tag", "2tag" } ) {
+      for( const auto& PRW : { "PRW", "noPRW" } ) {
+        histoStore()->createTH1F( (boost::format("m_yyjj_%s_%s_%s") % constraint % tag % PRW).str(), 2501, -1.0, 5001.0,";#it{m}_{bbyy} [GeV];N_{events}");
+      }
+    }
+  }
+  Info( "createOutput()", "Initialising output histograms" );
   return EL::StatusCode::SUCCESS;
 }
 
@@ -125,58 +131,61 @@ EL::StatusCode SignalResonanceMassWindow::execute()
   // from the < 2 tag data - perhaps we can use 0 tag data this time around when we
   // have it and then compare to our simulation estimate.
 
-  // Get event info
-  const xAOD::EventInfo* eventInfo(0);
-  HG_CHECK( "execute()", m_event->retrieve(eventInfo, "EventInfo") )
+  /// Get event info
   const xAOD::EventInfo* HGammaEventInfo(0);
-  HG_CHECK( "execute()", m_event->retrieve(HGammaEventInfo, "HGamEventInfo") )
+  HG_CHECK( "execute()", m_event->retrieve(HGammaEventInfo, "HH2yybbEventInfo") )
 
-  /// Fetch selected photons
-  const xAOD::PhotonContainer *photons(0);
-  HG_CHECK( "execute()", m_event->retrieve(photons, "HH2yybbPhotons") );
+  /// Fetch selected objects
+  const xAOD::PhotonContainer *selected_photons(0);
+  HG_CHECK( "execute()", m_event->retrieve(selected_photons, "HH2yybbPhotons") );
+  const xAOD::JetContainer *selected_jets(0);
+  HG_CHECK( "execute()", m_event->retrieve(selected_jets, "HH2yybbAntiKt4EMTopoJets_AllSelAnyTag") );
 
   // Require at least two photons
-  if( photons->size() < 2 ) { return sc; }
+  if( selected_photons->size() < 2 ) { return sc; }
 
   // Require photons to be in the mass window
-  TLorentzVector yy = photons->at(0)->p4() + photons->at(1)->p4();
+  TLorentzVector yy = selected_photons->at(0)->p4() + selected_photons->at(1)->p4();
   if( (yy.M() / HG::GeV) < m_m_yy_low || (yy.M() / HG::GeV) > m_m_yy_high ) { return sc; }
-  if( m_debug ) { Info( "execute()", (boost::format( "Found m_yy (%s) in range %s -> %s" ) % (yy.M() / HG::GeV) % m_m_yy_low % m_m_yy_high ).str().c_str() ); }
 
   // Retrieve b-tagging category: -1:no jets; 0:two light jets; 1:1 light/1 b-jet; 2:2 b-jets
   int bTagCategory = HGammaEventInfo->auxdata<int>("bTagCategory");
   if( bTagCategory < 0 ) { return sc; }
 
   // Get the uncorrected masses
-  double m_yyjj = HGammaEventInfo->auxdata<float>("m_yyjj") / HG::GeV;
-  m_m_yyjj_0tag = bTagCategory == 0 ? m_yyjj : -99;
-  m_m_yyjj_1tag = bTagCategory == 1 ? m_yyjj : -99;
-  m_m_yyjj_2tag = bTagCategory == 2 ? m_yyjj : -99;
-
-  // Retrieve jet collection
-  const xAOD::JetContainer *selected_jets(0);
-  HG_CHECK( "execute()", m_event->retrieve(selected_jets, "HH2yybbAntiKt4EMTopoJets_AllSelAnyTag") );
+  double m_yyjj_unscaled = HGammaEventInfo->auxdata<float>("m_yyjj") / HG::GeV;
+  m_m_yyjj_unscaled_0tag = bTagCategory == 0 ? m_yyjj_unscaled : -99;
+  m_m_yyjj_unscaled_1tag = bTagCategory == 1 ? m_yyjj_unscaled : -99;
+  m_m_yyjj_unscaled_2tag = bTagCategory == 2 ? m_yyjj_unscaled : -99;
 
   // Construct Higgs-scaled masses
   TLorentzVector jj = ApplyHiggsMassScaling( selected_jets->at(0)->p4() + selected_jets->at(1)->p4() );
-  double m_yyjj_mHconstraint = (yy + jj).M() / HG::GeV;
+  double m_yyjj_mHscaled = (yy + jj).M() / HG::GeV;
 
   // Set initial values outside the acceptance
-  m_m_yyjj_mHconstraint_0tag = bTagCategory == 0 ? m_yyjj_mHconstraint : -99;
-  m_m_yyjj_mHconstraint_1tag = bTagCategory == 1 ? m_yyjj_mHconstraint : -99;
-  m_m_yyjj_mHconstraint_2tag = bTagCategory == 2 ? m_yyjj_mHconstraint : -99;
+  m_m_yyjj_mHscaled_0tag = bTagCategory == 0 ? m_yyjj_mHscaled : -99;
+  m_m_yyjj_mHscaled_1tag = bTagCategory == 1 ? m_yyjj_mHscaled : -99;
+  m_m_yyjj_mHscaled_2tag = bTagCategory == 2 ? m_yyjj_mHscaled : -99;
 
-  if( m_debug ) { Info( "execute()", (boost::format("m_yyjj 0 tag: %s, with bb constraint %s") % m_m_yyjj_0tag % m_m_yyjj_mHconstraint_0tag).str().c_str() ); }
-  if( m_debug ) { Info( "execute()", (boost::format("m_yyjj 1 tag: %s, with bb constraint %s") % m_m_yyjj_1tag % m_m_yyjj_mHconstraint_1tag).str().c_str() ); }
-  if( m_debug ) { Info( "execute()", (boost::format("m_yyjj 2 tag: %s, with bb constraint %s") % m_m_yyjj_2tag % m_m_yyjj_mHconstraint_2tag).str().c_str() ); }
+  // Overall event weight is pileup weight * xs weight
+  m_weight_pileup = HGammaEventInfo->auxdata<float>("weight");
+  m_weight_xslumi = HGammaEventInfo->auxdata<float>("weightXsecLumi");
 
-  // Fill histograms
-  histoStore()->fillTH1F("m_yyjj_0tag",m_m_yyjj_0tag);
-  histoStore()->fillTH1F("m_yyjj_1tag",m_m_yyjj_1tag);
-  histoStore()->fillTH1F("m_yyjj_2tag",m_m_yyjj_2tag);
-  histoStore()->fillTH1F("m_yyjj_mHconstraint_0tag",m_m_yyjj_mHconstraint_0tag);
-  histoStore()->fillTH1F("m_yyjj_mHconstraint_1tag",m_m_yyjj_mHconstraint_1tag);
-  histoStore()->fillTH1F("m_yyjj_mHconstraint_2tag",m_m_yyjj_mHconstraint_2tag);
+  // Fill histograms - no PRW
+  histoStore()->fillTH1F( "m_yyjj_unscaled_0tag_noPRW", m_m_yyjj_unscaled_0tag, m_weight_xslumi );
+  histoStore()->fillTH1F( "m_yyjj_unscaled_1tag_noPRW", m_m_yyjj_unscaled_1tag, m_weight_xslumi );
+  histoStore()->fillTH1F( "m_yyjj_unscaled_2tag_noPRW", m_m_yyjj_unscaled_2tag, m_weight_xslumi );
+  histoStore()->fillTH1F( "m_yyjj_mHscaled_0tag_noPRW", m_m_yyjj_mHscaled_0tag, m_weight_xslumi );
+  histoStore()->fillTH1F( "m_yyjj_mHscaled_1tag_noPRW", m_m_yyjj_mHscaled_1tag, m_weight_xslumi );
+  histoStore()->fillTH1F( "m_yyjj_mHscaled_2tag_noPRW", m_m_yyjj_mHscaled_2tag, m_weight_xslumi );
+
+  // Fill histograms - with PRW
+  histoStore()->fillTH1F( "m_yyjj_unscaled_0tag_PRW", m_m_yyjj_unscaled_0tag, m_weight_xslumi * m_weight_pileup );
+  histoStore()->fillTH1F( "m_yyjj_unscaled_1tag_PRW", m_m_yyjj_unscaled_1tag, m_weight_xslumi * m_weight_pileup );
+  histoStore()->fillTH1F( "m_yyjj_unscaled_2tag_PRW", m_m_yyjj_unscaled_2tag, m_weight_xslumi * m_weight_pileup );
+  histoStore()->fillTH1F( "m_yyjj_mHscaled_0tag_PRW", m_m_yyjj_mHscaled_0tag, m_weight_xslumi * m_weight_pileup );
+  histoStore()->fillTH1F( "m_yyjj_mHscaled_1tag_PRW", m_m_yyjj_mHscaled_1tag, m_weight_xslumi * m_weight_pileup );
+  histoStore()->fillTH1F( "m_yyjj_mHscaled_2tag_PRW", m_m_yyjj_mHscaled_2tag, m_weight_xslumi * m_weight_pileup );
 
   // Fill output tree and return
   m_output_tree->Fill();
