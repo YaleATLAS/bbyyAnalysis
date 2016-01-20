@@ -91,7 +91,9 @@ EL::StatusCode SignalResonanceMassWindow::createOutput()
   for( const auto& constraint : { "unscaled", "mHscaled" } ) {
     for( const auto& tag : { "0tag", "1tag", "2tag" } ) {
       for( const auto& PRW : { "PRW", "noPRW" } ) {
-        histoStore()->createTH1F( (boost::format("m_yyjj_%s_%s_%s") % constraint % tag % PRW).str(), 2501, -1.0, 5001.0,";#it{m}_{bbyy} [GeV];N_{events}");
+        histoStore()->createTH1F( (boost::format("m_yyjj_%s_%s_%s") % constraint % tag % PRW).str(), 800, 100, 900,";#it{m}_{yyjj} [GeV];N_{events}");
+        histoStore()->createTH1F( (boost::format("m_jj_%s_%s_%s") % constraint % tag % PRW).str(), 50, 0, 200,";#it{m}_{jj} [GeV];N_{events}");
+        histoStore()->createTH1F( (boost::format("m_yy_%s_%s_%s") % constraint % tag % PRW).str(), 55, 105, 160,";#it{m}_{yy} [GeV];N_{events}");
       }
     }
   }
@@ -134,6 +136,7 @@ EL::StatusCode SignalResonanceMassWindow::execute()
   /// Get event info
   const xAOD::EventInfo* HGammaEventInfo(0);
   HG_CHECK( "execute()", m_event->retrieve(HGammaEventInfo, "HH2yybbEventInfo") )
+  // HG_CHECK( "execute()", m_event->retrieve(HGammaEventInfo, "EventInfo") )
 
   /// Fetch selected objects
   const xAOD::PhotonContainer *selected_photons(0);
@@ -159,8 +162,9 @@ EL::StatusCode SignalResonanceMassWindow::execute()
   m_m_yyjj_unscaled_2tag = bTagCategory == 2 ? m_yyjj_unscaled : -99;
 
   // Construct Higgs-scaled masses
-  TLorentzVector jj = ApplyHiggsMassScaling( selected_jets->at(0)->p4() + selected_jets->at(1)->p4() );
-  double m_yyjj_mHscaled = (yy + jj).M() / HG::GeV;
+  TLorentzVector jj_unscaled = selected_jets->at(0)->p4() + selected_jets->at(1)->p4();
+  TLorentzVector jj_mHscaled = ApplyHiggsMassScaling( jj_unscaled );
+  double m_yyjj_mHscaled = (yy + jj_mHscaled).M() / HG::GeV;
 
   // Set initial values outside the acceptance
   m_m_yyjj_mHscaled_0tag = bTagCategory == 0 ? m_yyjj_mHscaled : -99;
@@ -168,8 +172,8 @@ EL::StatusCode SignalResonanceMassWindow::execute()
   m_m_yyjj_mHscaled_2tag = bTagCategory == 2 ? m_yyjj_mHscaled : -99;
 
   // Overall event weight is pileup weight * xs weight
-  m_weight_pileup = HGammaEventInfo->auxdata<float>("weight");
-  m_weight_xslumi = HGammaEventInfo->auxdata<float>("weightXsecLumi");
+  m_weight_pileup = HGammaEventInfo->auxdata<float>("weightInitial");
+  m_weight_xslumi = 1.0; //HGammaEventInfo->auxdata<float>("weightXSLumi");
 
   // Fill histograms - no PRW
   histoStore()->fillTH1F( "m_yyjj_unscaled_0tag_noPRW", m_m_yyjj_unscaled_0tag, m_weight_xslumi );
@@ -186,6 +190,21 @@ EL::StatusCode SignalResonanceMassWindow::execute()
   histoStore()->fillTH1F( "m_yyjj_mHscaled_0tag_PRW", m_m_yyjj_mHscaled_0tag, m_weight_xslumi * m_weight_pileup );
   histoStore()->fillTH1F( "m_yyjj_mHscaled_1tag_PRW", m_m_yyjj_mHscaled_1tag, m_weight_xslumi * m_weight_pileup );
   histoStore()->fillTH1F( "m_yyjj_mHscaled_2tag_PRW", m_m_yyjj_mHscaled_2tag, m_weight_xslumi * m_weight_pileup );
+
+  // Fill auxiliary histograms
+  double m_yy_unscaled = HGammaEventInfo->auxdata<float>("m_yy") / HG::GeV;
+  double m_jj_unscaled = (jj_unscaled).M() / HG::GeV;
+  double m_jj_mHscaled = (jj_mHscaled).M() / HG::GeV;
+  // without PRW
+  histoStore()->fillTH1F( (boost::format("m_yy_unscaled_%stag_noPRW") % bTagCategory).str(), m_yy_unscaled, m_weight_xslumi );
+  histoStore()->fillTH1F( (boost::format("m_yy_mHscaled_%stag_noPRW") % bTagCategory).str(), m_yy_unscaled, m_weight_xslumi );
+  histoStore()->fillTH1F( (boost::format("m_jj_unscaled_%stag_noPRW") % bTagCategory).str(), m_jj_unscaled, m_weight_xslumi );
+  histoStore()->fillTH1F( (boost::format("m_jj_mHscaled_%stag_noPRW") % bTagCategory).str(), m_jj_mHscaled, m_weight_xslumi );
+  // with PRW
+  histoStore()->fillTH1F( (boost::format("m_yy_unscaled_%stag_PRW") % bTagCategory).str(), m_yy_unscaled, m_weight_xslumi * m_weight_pileup );
+  histoStore()->fillTH1F( (boost::format("m_yy_mHscaled_%stag_PRW") % bTagCategory).str(), m_yy_unscaled, m_weight_xslumi * m_weight_pileup );
+  histoStore()->fillTH1F( (boost::format("m_jj_unscaled_%stag_PRW") % bTagCategory).str(), m_jj_unscaled, m_weight_xslumi * m_weight_pileup );
+  histoStore()->fillTH1F( (boost::format("m_jj_mHscaled_%stag_PRW") % bTagCategory).str(), m_jj_mHscaled, m_weight_xslumi * m_weight_pileup );
 
   // Fill output tree and return
   m_output_tree->Fill();
