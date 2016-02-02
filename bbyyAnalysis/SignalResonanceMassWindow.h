@@ -28,7 +28,7 @@ private:
   double m_m_yyjj_mHscaled_0tag, m_m_yyjj_mHscaled_1tag, m_m_yyjj_mHscaled_2tag;
 
   // Event weights
-  double m_weight_pileup, m_weight_xslumi;
+  double m_event_weight, m_event_weight_noPRW;
 
 public:
   /// Constructors/destructors
@@ -40,6 +40,7 @@ public:
   virtual EL::StatusCode initialize();
   virtual EL::StatusCode createOutput();
   virtual EL::StatusCode execute();
+  virtual EL::StatusCode finalize();
 
   /// this is needed to distribute the algorithm to the workers
   ClassDef(SignalResonanceMassWindow, 1);
