@@ -3,7 +3,7 @@ import glob
 import re
 import subprocess
 
-patterns = { "data15_h010":"eos:h010a/data_25ns/", "mc15":"eos:h010a/mc_25ns/.*hh_yybb.*", "mc15_bkg":"eos:h010a/mc_25ns/MGPy8_y[bjy][bj][bj].*", "mc15_singleHiggs":"eos:h010a/mc_25ns/.*125\..*", }
+patterns = { "data15_h010":"eos:h010a/data_25ns/.*period.*", "mc15":"eos:h010a/mc_25ns/.*hh_yybb.*", "mc15_bkg":"eos:h010a/mc_25ns/MGPy8_y[bjy][bj][bj].*", "mc15_singleHiggs":"eos:h010a/mc_25ns/.*125\..*", }
 
 for list_pattern, dataset_pattern in sorted( patterns.items() ) :
   print "Working on",list_pattern
