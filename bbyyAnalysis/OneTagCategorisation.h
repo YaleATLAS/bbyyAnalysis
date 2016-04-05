@@ -15,11 +15,17 @@ private:
   TTree *m_correct_tree; //!
   TTree *m_incorrect_tree; //!
 
+  /// b-tagging working point
+  std::string m_b_tagging_WP; //!
+
+  /// DeltaR for truth jet <-> quark matching
+  double m_truth_jet_quark_dR; //!
+
   /// Output discriminators
   double m_m_jb, m_pT_jb, m_eta_jb;
   double m_Delta_eta_jb, m_Delta_phi_jb;
   double m_pT_j, m_eta_j;
-  int m_MV2c20_FCBE_70, m_MV2c20_FCBE_77, m_MV2c20_FCBE_85;
+  int m_MV2c20_FCBE_60, m_MV2c20_FCBE_70, m_MV2c20_FCBE_77, m_MV2c20_FCBE_85;
 
   /// Overall event weight
   double m_event_weight, m_sum_mc_weights;
@@ -42,6 +48,12 @@ public:
   virtual EL::StatusCode initialize();
   virtual EL::StatusCode execute();
   virtual EL::StatusCode finalize();
+
+  // Get final-state b-quarks
+  ConstDataVector<xAOD::TruthParticleContainer> bQuarkHiggsDescendants( const xAOD::TruthParticleContainer *truthPtcls );
+
+  // // Get DeltaR between b-quark
+  // double DeltaR( const xAOD::TruthParticleContainer *truthPtcls );
 
   // this is needed to distribute the algorithm to the workers
   ClassDef(OneTagCategorisation, 1);

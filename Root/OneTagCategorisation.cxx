@@ -19,6 +19,8 @@ OneTagCategorisation::OneTagCategorisation(const char *name)
 : HgammaAnalysis(name)
 , m_correct_tree(0)
 , m_incorrect_tree(0)
+, m_b_tagging_WP("")
+, m_truth_jet_quark_dR(0)
 , m_sum_mc_weights(0)
 {
   // Here you put any code for the base initialization of variables,
@@ -39,6 +41,15 @@ OneTagCategorisation::~OneTagCategorisation()
 }
 
 
+EL::StatusCode OneTagCategorisation::initialize ()
+{
+  const auto sc = HgammaAnalysis::initialize();
+  if( sc != EL::StatusCode::SUCCESS ) { return sc; }
+
+  m_truth_jet_quark_dR = config()->getNum("OneTagCategorisation.TruthJetQuarkDR", 0.2);
+  return EL::StatusCode::SUCCESS;
+}
+
 
 EL::StatusCode OneTagCategorisation::createOutput()
 {
@@ -49,7 +60,11 @@ EL::StatusCode OneTagCategorisation::createOutput()
   const auto sc = HgammaAnalysis::createOutput();
   if( sc != EL::StatusCode::SUCCESS ) { return sc; }
 
+  // Retrieve b-tagging working point
+  m_b_tagging_WP = std::string("MV2c20_") + config()->getStr("OneTagCategorisation.MV2c20.OperatingPoint", "FixedCutBEff_60");
+
   // Add correct choice tree to output file
+  ATH_MSG_INFO( "Initialising output trees..." );
   TFile *file = wk()->getOutputFile("MxAOD");
   m_correct_tree = new TTree("correct","correct");
   m_correct_tree->SetDirectory(file);
@@ -60,10 +75,11 @@ EL::StatusCode OneTagCategorisation::createOutput()
   m_correct_tree->Branch( "Delta_phi_jb",     &m_Delta_phi_jb );
   m_correct_tree->Branch( "pT_j",             &m_pT_j );
   m_correct_tree->Branch( "eta_j",            &m_eta_j );
-  m_correct_tree->Branch( "MV2c20_FCBE_70",   &m_MV2c20_FCBE_70 );
-  m_correct_tree->Branch( "MV2c20_FCBE_77",   &m_MV2c20_FCBE_77 );
-  m_correct_tree->Branch( "MV2c20_FCBE_85",   &m_MV2c20_FCBE_85 );
   m_correct_tree->Branch( "event_weight",     &m_event_weight );
+  if( m_b_tagging_WP != "MV2c20_FixedCutBEff_60" ) { m_correct_tree->Branch( "MV2c20_FCBE_60", &m_MV2c20_FCBE_60 ); }
+  if( m_b_tagging_WP != "MV2c20_FixedCutBEff_70" ) { m_correct_tree->Branch( "MV2c20_FCBE_70", &m_MV2c20_FCBE_70 ); }
+  if( m_b_tagging_WP != "MV2c20_FixedCutBEff_77" ) { m_correct_tree->Branch( "MV2c20_FCBE_77", &m_MV2c20_FCBE_77 ); }
+  if( m_b_tagging_WP != "MV2c20_FixedCutBEff_85" ) { m_correct_tree->Branch( "MV2c20_FCBE_85", &m_MV2c20_FCBE_85 ); }
   // Add incorrect choice tree to output file
   m_incorrect_tree = new TTree("incorrect","incorrect");
   m_incorrect_tree->SetDirectory(file);
@@ -74,21 +90,14 @@ EL::StatusCode OneTagCategorisation::createOutput()
   m_incorrect_tree->Branch( "Delta_phi_jb",     &m_Delta_phi_jb );
   m_incorrect_tree->Branch( "pT_j",             &m_pT_j );
   m_incorrect_tree->Branch( "eta_j",            &m_eta_j );
-  m_incorrect_tree->Branch( "MV2c20_FCBE_70",   &m_MV2c20_FCBE_70 );
-  m_incorrect_tree->Branch( "MV2c20_FCBE_77",   &m_MV2c20_FCBE_77 );
-  m_incorrect_tree->Branch( "MV2c20_FCBE_85",   &m_MV2c20_FCBE_85 );
   m_incorrect_tree->Branch( "event_weight",     &m_event_weight );
-  ATH_MSG_INFO( "Initialising output trees" );
+  if( m_b_tagging_WP != "MV2c20_FixedCutBEff_60" ) { m_incorrect_tree->Branch( "MV2c20_FCBE_60", &m_MV2c20_FCBE_60 ); }
+  if( m_b_tagging_WP != "MV2c20_FixedCutBEff_70" ) { m_incorrect_tree->Branch( "MV2c20_FCBE_70", &m_MV2c20_FCBE_70 ); }
+  if( m_b_tagging_WP != "MV2c20_FixedCutBEff_77" ) { m_incorrect_tree->Branch( "MV2c20_FCBE_77", &m_MV2c20_FCBE_77 ); }
+  if( m_b_tagging_WP != "MV2c20_FixedCutBEff_85" ) { m_incorrect_tree->Branch( "MV2c20_FCBE_85", &m_MV2c20_FCBE_85 ); }
   return EL::StatusCode::SUCCESS;
 }
 
-
-EL::StatusCode OneTagCategorisation::initialize ()
-{
-  const auto sc = HgammaAnalysis::initialize();
-  if( sc != EL::StatusCode::SUCCESS ) { return sc; }
-  return EL::StatusCode::SUCCESS;
-}
 
 EL::StatusCode OneTagCategorisation::execute()
 {
@@ -105,9 +114,9 @@ EL::StatusCode OneTagCategorisation::execute()
   /// Get MC weight
   m_sum_mc_weights += eventHandler()->mcWeight();
 
-  /// Get overall event weight
+  /// Get overall event weight, normalised to 1fb-1
   int mcID = eventInfo()->mcChannelNumber();
-  m_event_weight = (eventHandler()->mcWeight() * 1e3) * HgammaAnalysis::getCrossSection(mcID) * HgammaAnalysis::getGeneratorEfficiency(mcID) * HgammaAnalysis::getKFactor(mcID) / sumOfWeights(mcID);
+  m_event_weight = eventHandler()->mcWeight() * ( 1e3 * HgammaAnalysis::getCrossSection(mcID)) * HgammaAnalysis::getGeneratorEfficiency(mcID) * HgammaAnalysis::getKFactor(mcID) / sumOfWeights(mcID);
 
   //___________________________________________________________________________________________
   // Fetch default jets
@@ -117,17 +126,28 @@ EL::StatusCode OneTagCategorisation::execute()
   xAOD::JetContainer jets_selected_truth_not_tagged( SG::VIEW_ELEMENTS );
   xAOD::JetContainer jets_selected_not_truth_b( SG::VIEW_ELEMENTS );
 
+  // Retrieve the truth particles
+  const xAOD::TruthParticleContainer *truthPtcls = 0;
+  EL_CHECK( "execute()", event()->retrieve(truthPtcls, "TruthParticles") );
+
+  // Select final-state b-quarks descended from Higgs bosons
+  ConstDataVector<xAOD::TruthParticleContainer> bQuarksSelected = bQuarkHiggsDescendants( truthPtcls );
+
   //Loop jets and apply muon correction and seperate bjet / untagged jets
   for( auto jet : jets_selected ) {
-    bool truth_matched( jet->auxdata<int>("HadronConeExclTruthLabelID") == 5 );
+    bool truth_tagged( jet->auxdata<int>("HadronConeExclTruthLabelID") == 5 );
     bool reco_tagged( jet->auxdata<char>("MV2c20_FixedCutBEff_60") );
+    bool truth_matched( HG::minDRrap( jet, bQuarksSelected ) < m_truth_jet_quark_dR );
+    if( truth_tagged != truth_matched ) {
+      std::cout << "Mismatch: minDRrap: " << HG::minDRrap( jet, bQuarksSelected ) << std::boolalpha << " tagged? " << truth_tagged << ", matched? " << truth_matched << std::endl;
+    }
     // Categorise jets
-    if( truth_matched ) {
+    if( truth_tagged && truth_matched ) {
       if( reco_tagged ) {
-        // Truth b-jets correctly tagged
+        // Truth b-jets from Higgs correctly tagged
         jets_selected_truth_and_tagged.push_back( jet );
       } else {
-        // Truth b-jets incorrectly tagged
+        // Truth b-jets from Higgs incorrectly tagged
         jets_selected_truth_not_tagged.push_back( jet );
       }
     } else {
@@ -138,6 +158,7 @@ EL::StatusCode OneTagCategorisation::execute()
                               << jets_selected_truth_and_tagged.size() << " are correctly tagged b-jets, "
                               << jets_selected_truth_not_tagged.size() << " are incorrectly tagged b-jets and "
                               << jets_selected_not_truth_b.size() << " are not truth b-jets" );
+
 
   // Want events with 2 truth-matched b-jets but only one reco-tagged b-jet
   if( jets_selected_truth_and_tagged.size() == 1 && jets_selected_truth_not_tagged.size() == 1 ) {
@@ -177,7 +198,50 @@ EL::StatusCode OneTagCategorisation::finalize() {
   return EL::StatusCode::SUCCESS;
 }
 
+
+ConstDataVector<xAOD::TruthParticleContainer> OneTagCategorisation::bQuarkHiggsDescendants( const xAOD::TruthParticleContainer *truthPtcls ) {
+  // Select all b-quarks with Higgs parents
+  ConstDataVector<xAOD::TruthParticleContainer> bQuarkHiggsChildren(SG::VIEW_ELEMENTS);
+  for( auto ptcl : *truthPtcls ) {
+    if( fabs(ptcl->pdgId()) == 5 ) {
+      for( unsigned int iParent = 0; iParent < ptcl->nParents(); ++iParent ) {
+        if( ptcl->parent(iParent)->isHiggs() ) { bQuarkHiggsChildren.push_back( ptcl ); }
+      }
+    }
+  }
+  ATH_MSG_DEBUG( "There are " << bQuarkHiggsChildren.size() << " b-quarks with direct Higgs parents in this event" );
+
+  // Set up two queues of particles to process and a collection of final-state b-quarks descended from Higgses
+  ConstDataVector<xAOD::TruthParticleContainer> particlesBeingProcessed( bQuarkHiggsChildren );
+  ConstDataVector<xAOD::TruthParticleContainer> particlesInQueue(SG::VIEW_ELEMENTS);
+  ConstDataVector<xAOD::TruthParticleContainer> bQuarkHiggsDescendantsFinalState(SG::VIEW_ELEMENTS);
+
+  // Iterate over particles descended from Higgs bosons while any remain in the queue
+  while( particlesBeingProcessed.size() > 0 ) {
+    for( auto ptcl : particlesBeingProcessed ) {
+      // If the particle is a final-state b-quark then save it
+      if( fabs(ptcl->pdgId()) == 5 && ptcl->status() == 23 ) {
+        bQuarkHiggsDescendantsFinalState.push_back( ptcl );
+      // Otherwise add all of its b-quark descendents to the queue
+      } else {
+        for( unsigned int iChild = 0; iChild < ptcl->nChildren(); ++iChild ) {
+          if( fabs(ptcl->child(iChild)->pdgId()) == 5 ) { particlesInQueue.push_back( ptcl->child(iChild) ); }
+        }
+      }
+    }
+    // Move the queued particles to be processed next
+    // std::cout << "Old sizes: " << particlesBeingProcessed.size() << " done, " << particlesInQueue.size() << " to be done" << std::endl;
+    particlesBeingProcessed.swap( particlesInQueue );
+    particlesInQueue.clear();
+    // std::cout << "New sizes: " << particlesBeingProcessed.size() << " to be done, " << particlesInQueue.size() << " remaining in queue" << std::endl;
+  }
+  ATH_MSG_DEBUG( "There are " << bQuarkHiggsDescendantsFinalState.size() << " final-state b-quarks which are descended from Higgs bosons" );
+  return bQuarkHiggsDescendantsFinalState;
+}
+
+
 double OneTagCategorisation::sumOfWeights( int mcID ) {
+  if( mcID == 341063 ) { return 196000; } // SM yybj
   if( mcID == 341559 ) { return 100000; } // SM hh->yybb
   if( mcID == 341173 ) { return 100000; } // X275->hh->yybb
   if( mcID == 341004 ) { return 100000; } // X300->hh->yybb
@@ -196,6 +260,7 @@ void OneTagCategorisation::fillVariables( const xAOD::Jet& bjet, const xAOD::Jet
   m_Delta_phi_jb = bjet.p4().DeltaPhi( otherjet.p4() );
   m_pT_j = otherjet.pt() / HG::GeV;
   m_eta_j = otherjet.eta();
+  m_MV2c20_FCBE_60 = otherjet.auxdata<char>("MV2c20_FixedCutBEff_60");
   m_MV2c20_FCBE_70 = otherjet.auxdata<char>("MV2c20_FixedCutBEff_70");
   m_MV2c20_FCBE_77 = otherjet.auxdata<char>("MV2c20_FixedCutBEff_77");
   m_MV2c20_FCBE_85 = otherjet.auxdata<char>("MV2c20_FixedCutBEff_85");
