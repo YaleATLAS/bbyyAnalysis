@@ -111,26 +111,6 @@ EL::StatusCode SignalResonanceMassWindow::execute()
   // const auto sc = HgammaAnalysis::execute();
   // if( sc != EL::StatusCode::SUCCESS ) { return sc; }
 
-  // sorry for a late reply! So the mass window is for m_bbyy in the resonant search
-  // analysis. Additional correction to m_bb is by applying a mass constraint (scaling
-  // it to the Higgs mass) which improves the resolution by quite a bit. Take a look
-  // at Fig. 29 in the internal note.  Then the mass window is defined as the smallest
-  // window containing 95% of the signal events. This has to be done separately for
-  // each mass hypothesis and for 2-tag and 1-tag separately since these will be our
-  // signal regions. Also it would be great to compare the mass window before and
-  // after applying the mass constraint (Fig. 45). And yes, at reco-level and after
-  // all the analysis cuts - so tight photons, pT cuts, b-jets, myy etc.  Another
-  // question here is also about the background m_bbyy efficiency —> I think they
-  // were derived from a di-jet control sample in Run1.
-
-  // Yes, exactly. We're looking for the m_yybb window for events that are already in
-  // the m_yy mass window (for now you could just use 120-130 GeV). And we could do
-  // this with and without the m_bb scaling. In terms of the background, it's interesting
-  // to see the "efficiency" for background to pass these cuts with and without the m_bb
-  // mass constraint. For now of course we have simulation. In run 1 we took this
-  // from the < 2 tag data - perhaps we can use 0 tag data this time around when we
-  // have it and then compare to our simulation estimate.
-
   /// Get event info
   const xAOD::EventInfo* HGammaEventInfo(0);
   EL_CHECK( "execute()", m_event->retrieve(HGammaEventInfo, "HH2yybbEventInfo") )
