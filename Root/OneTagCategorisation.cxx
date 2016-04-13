@@ -20,8 +20,12 @@ OneTagCategorisation::OneTagCategorisation(const char *name)
 , m_correct_tree(0)
 , m_incorrect_tree(0)
 , m_b_tagging_WP("")
-, m_truth_jet_quark_dR(0)
 , m_sum_mc_weights(0)
+, m_nEvents(0)
+, m_nPassingReco(0)
+, m_nTruthTagged(0)
+, m_nTruthMatched(0)
+, m_nTruthTaggedAndMatched(0)
 {
   // Here you put any code for the base initialization of variables,
   // e.g. initialize all pointers to 0.  Note that you should only put
@@ -29,7 +33,6 @@ OneTagCategorisation::OneTagCategorisation(const char *name)
   // called on both the submission and the worker node.  Most of your
   // initialization code will go into histInitialize() and
   // initialize().
-  // MsgStream::setName(name);
   this->SetName(name);
 }
 
@@ -41,12 +44,11 @@ OneTagCategorisation::~OneTagCategorisation()
 }
 
 
+
 EL::StatusCode OneTagCategorisation::initialize ()
 {
   const auto sc = HgammaAnalysis::initialize();
   if( sc != EL::StatusCode::SUCCESS ) { return sc; }
-
-  m_truth_jet_quark_dR = config()->getNum("OneTagCategorisation.TruthJetQuarkDR", 0.2);
   return EL::StatusCode::SUCCESS;
 }
 
@@ -99,6 +101,7 @@ EL::StatusCode OneTagCategorisation::createOutput()
 }
 
 
+
 EL::StatusCode OneTagCategorisation::execute()
 {
   // Here you do everything that needs to be done on every single
@@ -113,6 +116,7 @@ EL::StatusCode OneTagCategorisation::execute()
 
   /// Get MC weight
   m_sum_mc_weights += eventHandler()->mcWeight();
+  ++m_nEvents;
 
   /// Get overall event weight, normalised to 1fb-1
   int mcID = eventInfo()->mcChannelNumber();
@@ -122,59 +126,89 @@ EL::StatusCode OneTagCategorisation::execute()
   // Fetch default jets
   xAOD::JetContainer jets_corrected = jetHandler()->getCorrectedContainer();
   xAOD::JetContainer jets_selected = jetHandler()->applySelection(jets_corrected);
-  xAOD::JetContainer jets_selected_truth_and_tagged( SG::VIEW_ELEMENTS );
-  xAOD::JetContainer jets_selected_truth_not_tagged( SG::VIEW_ELEMENTS );
-  xAOD::JetContainer jets_selected_not_truth_b( SG::VIEW_ELEMENTS );
 
-  // Retrieve the truth particles
+  // Retrieve truth-particles and select final-state b-quarks descended from Higgs bosons
   const xAOD::TruthParticleContainer *truthPtcls = 0;
   EL_CHECK( "execute()", event()->retrieve(truthPtcls, "TruthParticles") );
-
-  // Select final-state b-quarks descended from Higgs bosons
   ConstDataVector<xAOD::TruthParticleContainer> bQuarksSelected = bQuarkHiggsDescendants( truthPtcls );
 
-  //Loop jets and apply muon correction and seperate bjet / untagged jets
-  for( auto jet : jets_selected ) {
-    bool truth_tagged( jet->auxdata<int>("HadronConeExclTruthLabelID") == 5 );
-    bool reco_tagged( jet->auxdata<char>("MV2c20_FixedCutBEff_60") );
-    bool truth_matched( HG::minDRrap( jet, bQuarksSelected ) < m_truth_jet_quark_dR );
-    if( truth_tagged != truth_matched ) {
-      std::cout << "Mismatch: minDRrap: " << HG::minDRrap( jet, bQuarksSelected ) << std::boolalpha << " tagged? " << truth_tagged << ", matched? " << truth_matched << std::endl;
-    }
-    // Categorise jets
-    if( truth_tagged && truth_matched ) {
-      if( reco_tagged ) {
-        // Truth b-jets from Higgs correctly tagged
-        jets_selected_truth_and_tagged.push_back( jet );
-      } else {
-        // Truth b-jets from Higgs incorrectly tagged
-        jets_selected_truth_not_tagged.push_back( jet );
-      }
-    } else {
-      jets_selected_not_truth_b.push_back( jet );
+  // Perform matching to identify jet-quark pairs
+  matchQuarksToJets( bQuarksSelected, jets_selected );
+
+  std::cout << "* begin *" << std::endl;
+  int nBHadrons(0), nFromHiggs(0);
+  for( auto ptcl : *truthPtcls ) {
+    // std::cout << "isBHadron? " << HG::isFromBhadron(ptcl) << ", isFromHiggs? " << HG::isFromHiggs(ptcl) << std::endl;
+    if( HG::isFromBhadron(ptcl) ) { ++nBHadrons; }
+    if( HG::isFromHiggs(ptcl) ) { ++nFromHiggs; }
+    if( HG::isFromBhadron(ptcl) && HG::isFromHiggs(ptcl) ) {
+      std::cout << "... " << ptcl->pdgId() << std::endl;
     }
   }
-  ATH_MSG_DEBUG( "There are " << jets_selected.size() << " jets, of which "
-                              << jets_selected_truth_and_tagged.size() << " are correctly tagged b-jets, "
-                              << jets_selected_truth_not_tagged.size() << " are incorrectly tagged b-jets and "
-                              << jets_selected_not_truth_b.size() << " are not truth b-jets" );
+  std::cout << truthPtcls->size() << " of which " << nBHadrons << " b-hadrons and " << nFromHiggs << " from Higgs." << std::endl;
 
 
-  // Want events with 2 truth-matched b-jets but only one reco-tagged b-jet
-  if( jets_selected_truth_and_tagged.size() == 1 && jets_selected_truth_not_tagged.size() == 1 ) {
-    ATH_MSG_DEBUG( "  pT of tagged jet " << jets_selected_truth_and_tagged.at(0)->pt() / HG::GeV );
-    ATH_MSG_DEBUG( "  pT of untagged jet " << jets_selected_truth_not_tagged.at(0)->pt() / HG::GeV );
+  // Construct b-jets container
+  xAOD::JetContainer jets_selected_b_tagged( SG::VIEW_ELEMENTS );
+  xAOD::JetContainer jets_selected_non_b_tagged( SG::VIEW_ELEMENTS );
+  for( auto jet : jets_selected ) {
+    bool reco_tagged( jet->auxdata<char>(m_b_tagging_WP) );
+    if( reco_tagged ) { jets_selected_b_tagged.push_back( jet ); }
+    else { jets_selected_non_b_tagged.push_back( jet ); }
+  }
 
-    // Correct pairing
-    this->fillVariables( *jets_selected_truth_and_tagged.at(0), *jets_selected_truth_not_tagged.at(0) );
-    m_correct_tree->Fill();
-    // Incorrect pairing
-    for( const auto jet : jets_selected_not_truth_b ) {
-      this->fillVariables( *jets_selected_truth_and_tagged.at(0), *jet );
+  // We only want events with exactly one b-jet so reject otherwise
+  if( jets_selected_b_tagged.size() != 1 ) { return EL::StatusCode::SUCCESS; }
+  ++m_nPassingReco;
+
+  // Determine whether the b-jet is truth tagged and Higgs matched
+  bool b_is_truth_tagged( jets_selected_b_tagged.at(0)->auxdata<int>("HadronConeExclTruthLabelID") == 5 );
+  bool b_is_Higgs_matched( jets_selected_b_tagged.at(0)->auxdata<char>("HiggsMatched") );
+  if( b_is_truth_tagged ) { ++m_nTruthTagged; }
+  if( b_is_Higgs_matched ) { ++m_nTruthMatched; }
+  if( b_is_truth_tagged && b_is_Higgs_matched ) { ++m_nTruthTaggedAndMatched; }
+
+  // Case (A): matched to a truth b-jet and to a b-quark Higgs descendant
+  // if( b_is_truth_tagged && b_is_Higgs_matched ) {
+  if( b_is_Higgs_matched ) {
+    // Loop over non b-jets and look for any that are also Higgs-matched
+    for( auto jet : jets_selected_non_b_tagged ) {
+      // bool jet_is_truth_tagged( jet->auxdata<int>("HadronConeExclTruthLabelID") == 5 );
+      bool jet_is_Higgs_matched( jet->auxdata<char>("HiggsMatched") );
+      // Correct pairing
+      // if( jet_is_truth_tagged && jet_is_Higgs_matched ) {
+      if( jet_is_Higgs_matched ) {
+        this->calculateOutputQuantities( *jets_selected_b_tagged.at(0), *jet );
+        m_correct_tree->Fill();
+      // Incorrect pairing
+      } else {
+        this->calculateOutputQuantities( *jets_selected_b_tagged.at(0), *jet );
+        m_incorrect_tree->Fill();
+      }
+    }
+  // Case (B): matched to a truth b-jet but not to a b-quark Higgs descendant
+  } else if( b_is_truth_tagged && !b_is_Higgs_matched ) {
+    // Loop over all non-b jets: all are incorrect pairs
+    for( auto jet : jets_selected ) {
+      this->calculateOutputQuantities( *jets_selected_b_tagged.at(0), *jet );
+      m_incorrect_tree->Fill();
+    }
+  // Case (C): not matched to a truth b-jet
+  } else if( !b_is_truth_tagged ) {
+    // Loop over all non-b jets: all are incorrect pairs
+    for( auto jet : jets_selected ) {
+      this->calculateOutputQuantities( *jets_selected_b_tagged.at(0), *jet );
       m_incorrect_tree->Fill();
     }
   }
-
+  // pre-selection) exactly 1 reco b-jet
+  // A) if it's matched to a truth b-jet which is dR-matched to a b-quark-descended-from-a-Higgs
+  //   1) any non-b-jet which is also matched to a truth b-jet AND dR-matched is CORRECT (should only be 1)
+  //   2) other non-b-jets are INCORRECT
+  // B) if matched to a truth b-jet not dR-matched
+  //   1) all non-b-jets are INCORRECT
+  // C) if not matched to a truth b-jet
+  //   1) ignore? or INCORRECT?
   return EL::StatusCode::SUCCESS;
 }
 
@@ -193,10 +227,15 @@ EL::StatusCode OneTagCategorisation::finalize() {
   const auto sc = HgammaAnalysis::finalize();
   if( sc != EL::StatusCode::SUCCESS ) { return sc; }
 
-  ATH_MSG_INFO( "Output trees contain: correct " << m_correct_tree->GetEntries() << " incorrect " << m_incorrect_tree->GetEntries() << " pairs" );
-  ATH_MSG_INFO( "Sum of MC weights in this job for channel " << eventInfo()->mcChannelNumber() << " is " << m_sum_mc_weights );
+  ATH_MSG_INFO( "The sum of MC weights in this job for channel " << eventInfo()->mcChannelNumber() << " was " << m_sum_mc_weights );
+  ATH_MSG_INFO( m_nPassingReco << " of " << m_nEvents << " events (" << (m_nEvents > 0 ? 100*m_nPassingReco/m_nEvents : 0) << "%) had exactly one reconstructed b-jet." );
+  ATH_MSG_INFO( "... HadronConeExclTruthLabelID truth-tagging:     " << m_nTruthTagged << "(" << (m_nPassingReco > 0 ? 100*m_nTruthTagged/m_nPassingReco : 0) << "%)" );
+  ATH_MSG_INFO( "... using b-quarks from Higgs for truth-matching: " << m_nTruthMatched << "(" << (m_nPassingReco > 0 ? 100*m_nTruthMatched/m_nPassingReco : 0) << "%)" );
+  ATH_MSG_INFO( "... truth-tagged AND truth-matched:               " << m_nTruthTaggedAndMatched << "(" << (m_nPassingReco > 0 ? 100*m_nTruthTaggedAndMatched/m_nPassingReco : 0) << "%)" );
+  ATH_MSG_INFO( "This corresponded to: " << m_correct_tree->GetEntries() << " correct pairs and " << m_incorrect_tree->GetEntries() << " incorrect pairs" );
   return EL::StatusCode::SUCCESS;
 }
+
 
 
 ConstDataVector<xAOD::TruthParticleContainer> OneTagCategorisation::bQuarkHiggsDescendants( const xAOD::TruthParticleContainer *truthPtcls ) {
@@ -230,28 +269,49 @@ ConstDataVector<xAOD::TruthParticleContainer> OneTagCategorisation::bQuarkHiggsD
       }
     }
     // Move the queued particles to be processed next
-    // std::cout << "Old sizes: " << particlesBeingProcessed.size() << " done, " << particlesInQueue.size() << " to be done" << std::endl;
     particlesBeingProcessed.swap( particlesInQueue );
     particlesInQueue.clear();
-    // std::cout << "New sizes: " << particlesBeingProcessed.size() << " to be done, " << particlesInQueue.size() << " remaining in queue" << std::endl;
   }
   ATH_MSG_DEBUG( "There are " << bQuarkHiggsDescendantsFinalState.size() << " final-state b-quarks which are descended from Higgs bosons" );
   return bQuarkHiggsDescendantsFinalState;
 }
 
 
-double OneTagCategorisation::sumOfWeights( int mcID ) {
-  if( mcID == 341063 ) { return 196000; } // SM yybj
-  if( mcID == 341559 ) { return 100000; } // SM hh->yybb
-  if( mcID == 341173 ) { return 100000; } // X275->hh->yybb
-  if( mcID == 341004 ) { return 100000; } // X300->hh->yybb
-  if( mcID == 341174 ) { return 100000; } // X325->hh->yybb
-  if( mcID == 341175 ) { return 100000; } // X350->hh->yybb
-  if( mcID == 341176 ) { return 100000; } // X400->hh->yybb
-  return 1.0;
+
+void OneTagCategorisation::matchQuarksToJets( ConstDataVector<xAOD::TruthParticleContainer> bQuarks, xAOD::JetContainer jets ) {
+  ATH_MSG_DEBUG( "Matching between " << bQuarks.size() << " quarks and " << jets.size() << " jets" );
+  // Initialise 2D-array of dR distances
+  std::vector< std::vector<double> > deltaRjq( jets.size()+1, std::vector<double>(bQuarks.size()+1,99) );
+  SG::AuxElement::Accessor<char> accHiggsMatched("HiggsMatched");
+  // Get deltaR for each pair
+  for( unsigned int idx_j = 0; idx_j < jets.size(); ++idx_j ) {
+    for( unsigned int idx_q = 0; idx_q < bQuarks.size(); ++idx_q ) {
+      deltaRjq.at(idx_j).at(idx_q) = HG::DR( jets.at(idx_j), bQuarks.at(idx_q) );
+      deltaRjq.at(idx_j).back() = std::min( deltaRjq.at(idx_j).at(idx_q), deltaRjq.at(idx_j).back() );
+      deltaRjq.back().at(idx_q) = std::min( deltaRjq.at(idx_j).at(idx_q), deltaRjq.back().at(idx_q) );
+    }
+  }
+  // Find all jet-quark pairs that are closer to each other than either is to anything else
+  for( unsigned int idx_j = 0; idx_j < jets.size(); ++idx_j ) {
+    unsigned int closest_quark_to_jet(-1);
+    for( unsigned int idx_q = 0; idx_q < bQuarks.size(); ++idx_q ) {
+      if( deltaRjq.at(idx_j).at(idx_q) == deltaRjq.at(idx_j).back() ) { closest_quark_to_jet = idx_q; break; }
+    }
+    ATH_MSG_DEBUG( "... for jet " << idx_j << " the closest quark is " << closest_quark_to_jet );
+    if( deltaRjq.at(idx_j).at(closest_quark_to_jet) == deltaRjq.back().at(closest_quark_to_jet) ) {
+      ATH_MSG_DEBUG( "... this is also the closest jet to that quark -> match found" );
+      accHiggsMatched( *jets.at(idx_j) ) = true;
+    } else {
+      ATH_MSG_DEBUG( "... but this is not the closest jet to that quark -> no match" );
+      accHiggsMatched( *jets.at(idx_j) ) = false;
+    }
+  }
+  return;
 }
 
-void OneTagCategorisation::fillVariables( const xAOD::Jet& bjet, const xAOD::Jet& otherjet ) {
+
+
+void OneTagCategorisation::calculateOutputQuantities( const xAOD::Jet& bjet, const xAOD::Jet& otherjet ) {
   TLorentzVector tlv_jb = bjet.p4() + otherjet.p4();
   m_m_jb = tlv_jb.M() / HG::GeV;
   m_pT_jb = tlv_jb.Pt() / HG::GeV;
@@ -265,4 +325,17 @@ void OneTagCategorisation::fillVariables( const xAOD::Jet& bjet, const xAOD::Jet
   m_MV2c20_FCBE_77 = otherjet.auxdata<char>("MV2c20_FixedCutBEff_77");
   m_MV2c20_FCBE_85 = otherjet.auxdata<char>("MV2c20_FixedCutBEff_85");
   return;
+}
+
+
+
+double OneTagCategorisation::sumOfWeights( int mcID ) {
+  if( mcID == 341063 ) { return 196000; } // SM yybj
+  if( mcID == 341559 ) { return 100000; } // SM hh->yybb
+  if( mcID == 341173 ) { return 100000; } // X275->hh->yybb
+  if( mcID == 341004 ) { return 100000; } // X300->hh->yybb
+  if( mcID == 341174 ) { return 100000; } // X325->hh->yybb
+  if( mcID == 341175 ) { return 100000; } // X350->hh->yybb
+  if( mcID == 341176 ) { return 100000; } // X400->hh->yybb
+  return 1.0;
 }
