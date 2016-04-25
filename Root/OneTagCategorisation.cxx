@@ -173,7 +173,7 @@ EL::StatusCode OneTagCategorisation::execute()
   // Case (B): not matched to a b-quark Higgs descendant
   } else {
     // Loop over all non-b jets: all are incorrect pairs
-    for( auto jet : jets_selected ) {
+    for( auto jet : jets_selected_non_b_tagged ) {
       this->calculateOutputQuantities( *jets_selected_b_tagged.at(0), *jet );
       m_incorrect_tree->Fill();
     }
