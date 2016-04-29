@@ -19,16 +19,18 @@ private:
   std::string m_b_tagging_WP; //!
 
   /// Output discriminators
-  double m_m_jb, m_pT_jb, m_eta_jb;
+  double m_m_jb, m_pT_jb, m_abs_eta_jb;
   double m_Delta_eta_jb, m_Delta_phi_jb;
-  double m_pT_j, m_eta_j;
+  double m_pT_j, m_abs_eta_j;
   int m_MV2c20_FCBE_60, m_MV2c20_FCBE_70, m_MV2c20_FCBE_77, m_MV2c20_FCBE_85;
+  int m_idx_by_mH, m_idx_by_pT;
+
 
   /// Event weights
   double m_event_weight, m_sum_mc_weights;
 
   /// Cutflow counters
-  int m_nEvents, m_nPassingReco, m_nTruthTagged, m_nTruthMatched, m_nTruthTaggedAndMatched;
+  int m_nEvents, m_nPassingPreselection, m_nPassingReco, m_nTruthTagged, m_nTruthMatched, m_nTruthTaggedAndMatched;
 
   /// Get final-state b-quarks
   ConstDataVector<xAOD::TruthParticleContainer> bQuarkHiggsDescendants( const xAOD::TruthParticleContainer *truthPtcls );
@@ -36,8 +38,11 @@ private:
   /// Get final-state b-quarks
   void matchQuarksToJets( ConstDataVector<xAOD::TruthParticleContainer> bQuarks, xAOD::JetContainer jets );
 
+  /// Decorate with pT and mH indices
+  void decorateWithIndices( const xAOD::Jet& bjet, xAOD::JetContainer& nonbjets );
+
   /// Calculate quantities for output trees
-  void calculateOutputQuantities( const xAOD::Jet& bjet, const xAOD::Jet& otherjet );
+  void fillOutputTree( TTree* outputTree, const xAOD::Jet& bjet, const xAOD::Jet& otherjet );
 
   /// Retrieve sum of MC weights
   double sumOfWeights( int mcID );
