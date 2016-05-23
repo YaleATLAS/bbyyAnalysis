@@ -22,7 +22,8 @@ OneTagCategorisation::OneTagCategorisation(const char *name)
 : HgammaAnalysis(name)
 , m_correct_tree(0)
 , m_incorrect_tree(0)
-, m_b_tagging_WP("")
+, m_1_tag_WP("")
+, m_2_tag_WP("")
 , m_sum_mc_weights(0)
 , m_nEvents(0)
 , m_nPassingPreselection(0)
@@ -67,44 +68,41 @@ EL::StatusCode OneTagCategorisation::createOutput()
   if( sc != EL::StatusCode::SUCCESS ) { return sc; }
 
   // Retrieve b-tagging working point
-  m_b_tagging_WP = std::string("MV2c20_") + config()->getStr("OneTagCategorisation.MV2c20.OperatingPoint", "FixedCutBEff_60");
+  m_1_tag_WP = config()->getStr("OneTagCategorisation.1tag.OperatingPoint", "MV2c20_FixedCutBEff_60");
+  m_2_tag_WP = config()->getStr("OneTagCategorisation.2tag.OperatingPoint", "MV2c20_FixedCutBEff_85");
 
   // Add correct choice tree to output file
   ATH_MSG_INFO( "Initialising output trees..." );
   TFile *file = wk()->getOutputFile("MxAOD");
   m_correct_tree = new TTree("correct","correct");
   m_correct_tree->SetDirectory(file);
-  m_correct_tree->Branch( "abs_eta_j",        &m_abs_eta_j );
-  m_correct_tree->Branch( "abs_eta_jb",       &m_abs_eta_jb );
-  m_correct_tree->Branch( "Delta_eta_jb",     &m_Delta_eta_jb );
-  m_correct_tree->Branch( "Delta_phi_jb",     &m_Delta_phi_jb );
-  m_correct_tree->Branch( "idx_by_mH",        &m_idx_by_mH );
-  m_correct_tree->Branch( "idx_by_pT",        &m_idx_by_pT );
-  m_correct_tree->Branch( "m_jb",             &m_m_jb );
-  m_correct_tree->Branch( "pT_j",             &m_pT_j );
-  m_correct_tree->Branch( "pT_jb",            &m_pT_jb );
-  m_correct_tree->Branch( "event_weight",     &m_event_weight );
-  if( m_b_tagging_WP != "MV2c20_FixedCutBEff_60" ) { m_correct_tree->Branch( "MV2c20_FCBE_60", &m_MV2c20_FCBE_60 ); }
-  if( m_b_tagging_WP != "MV2c20_FixedCutBEff_70" ) { m_correct_tree->Branch( "MV2c20_FCBE_70", &m_MV2c20_FCBE_70 ); }
-  if( m_b_tagging_WP != "MV2c20_FixedCutBEff_77" ) { m_correct_tree->Branch( "MV2c20_FCBE_77", &m_MV2c20_FCBE_77 ); }
-  if( m_b_tagging_WP != "MV2c20_FixedCutBEff_85" ) { m_correct_tree->Branch( "MV2c20_FCBE_85", &m_MV2c20_FCBE_85 ); }
+  m_correct_tree->Branch( "abs_eta_j",       &m_abs_eta_j );
+  m_correct_tree->Branch( "abs_eta_jb",      &m_abs_eta_jb );
+  m_correct_tree->Branch( "Delta_eta_jb",    &m_Delta_eta_jb );
+  m_correct_tree->Branch( "Delta_phi_jb",    &m_Delta_phi_jb );
+  m_correct_tree->Branch( "idx_by_mH",       &m_idx_by_mH );
+  m_correct_tree->Branch( "idx_by_pT",       &m_idx_by_pT );
+  m_correct_tree->Branch( "m_jb",            &m_m_jb );
+  m_correct_tree->Branch( "pT_j",            &m_pT_j );
+  m_correct_tree->Branch( "pT_jb",           &m_pT_jb );
+  m_correct_tree->Branch( "eventNumber",     &m_eventNumber );
+  m_correct_tree->Branch( "mcChannelNumber", &m_mcChannelNumber );
+  m_correct_tree->Branch( "event_weight",    &m_event_weight );
   // Add incorrect choice tree to output file
   m_incorrect_tree = new TTree("incorrect","incorrect");
   m_incorrect_tree->SetDirectory(file);
-  m_incorrect_tree->Branch( "abs_eta_j",        &m_abs_eta_j );
-  m_incorrect_tree->Branch( "abs_eta_jb",       &m_abs_eta_jb );
-  m_incorrect_tree->Branch( "Delta_eta_jb",     &m_Delta_eta_jb );
-  m_incorrect_tree->Branch( "Delta_phi_jb",     &m_Delta_phi_jb );
-  m_incorrect_tree->Branch( "idx_by_mH",        &m_idx_by_mH );
-  m_incorrect_tree->Branch( "idx_by_pT",        &m_idx_by_pT );
-  m_incorrect_tree->Branch( "m_jb",             &m_m_jb );
-  m_incorrect_tree->Branch( "pT_j",             &m_pT_j );
-  m_incorrect_tree->Branch( "pT_jb",            &m_pT_jb );
-  m_incorrect_tree->Branch( "event_weight",     &m_event_weight );
-  if( m_b_tagging_WP != "MV2c20_FixedCutBEff_60" ) { m_incorrect_tree->Branch( "MV2c20_FCBE_60", &m_MV2c20_FCBE_60 ); }
-  if( m_b_tagging_WP != "MV2c20_FixedCutBEff_70" ) { m_incorrect_tree->Branch( "MV2c20_FCBE_70", &m_MV2c20_FCBE_70 ); }
-  if( m_b_tagging_WP != "MV2c20_FixedCutBEff_77" ) { m_incorrect_tree->Branch( "MV2c20_FCBE_77", &m_MV2c20_FCBE_77 ); }
-  if( m_b_tagging_WP != "MV2c20_FixedCutBEff_85" ) { m_incorrect_tree->Branch( "MV2c20_FCBE_85", &m_MV2c20_FCBE_85 ); }
+  m_incorrect_tree->Branch( "abs_eta_j",       &m_abs_eta_j );
+  m_incorrect_tree->Branch( "abs_eta_jb",      &m_abs_eta_jb );
+  m_incorrect_tree->Branch( "Delta_eta_jb",    &m_Delta_eta_jb );
+  m_incorrect_tree->Branch( "Delta_phi_jb",    &m_Delta_phi_jb );
+  m_incorrect_tree->Branch( "idx_by_mH",       &m_idx_by_mH );
+  m_incorrect_tree->Branch( "idx_by_pT",       &m_idx_by_pT );
+  m_incorrect_tree->Branch( "m_jb",            &m_m_jb );
+  m_incorrect_tree->Branch( "pT_j",            &m_pT_j );
+  m_incorrect_tree->Branch( "pT_jb",           &m_pT_jb );
+  m_incorrect_tree->Branch( "eventNumber",     &m_eventNumber );
+  m_incorrect_tree->Branch( "mcChannelNumber", &m_mcChannelNumber );
+  m_incorrect_tree->Branch( "event_weight",    &m_event_weight );
   return EL::StatusCode::SUCCESS;
 }
 
@@ -127,8 +125,9 @@ EL::StatusCode OneTagCategorisation::execute()
   ++m_nEvents;
 
   /// Get overall event weight, normalised to 1fb-1
-  int mcID = eventInfo()->mcChannelNumber();
-  m_event_weight = eventHandler()->mcWeight() * ( 1e3 * HgammaAnalysis::getCrossSection(mcID)) * HgammaAnalysis::getGeneratorEfficiency(mcID) * HgammaAnalysis::getKFactor(mcID) / sumOfWeights(mcID);
+  m_eventNumber = eventInfo()->eventNumber();
+  m_mcChannelNumber = eventInfo()->mcChannelNumber();
+  m_event_weight = eventHandler()->mcWeight() * sampleXS(m_mcChannelNumber) * HgammaAnalysis::getGeneratorEfficiency(m_mcChannelNumber) * HgammaAnalysis::getKFactor(m_mcChannelNumber) / sumOfWeights(m_mcChannelNumber);
 
   //___________________________________________________________________________________________
   // Fetch default jets
@@ -166,15 +165,17 @@ EL::StatusCode OneTagCategorisation::execute()
   matchQuarksToJets( bQuarksSelected, jets_selected );
 
   // Construct b-jets container
+  unsigned int nPassing_2_tag_WP(0);
   xAOD::JetContainer jets_selected_b_tagged( SG::VIEW_ELEMENTS );
   xAOD::JetContainer jets_selected_non_b_tagged( SG::VIEW_ELEMENTS );
   for( auto jet : jets_selected ) {
-    bool reco_tagged( jet->auxdata<char>(m_b_tagging_WP) );
-    if( reco_tagged ) { jets_selected_b_tagged.push_back( jet ); }
+    if( jet->auxdata<char>(m_2_tag_WP) ) { nPassing_2_tag_WP++; }
+    if( jet->auxdata<char>(m_1_tag_WP) ) { jets_selected_b_tagged.push_back( jet ); }
     else { jets_selected_non_b_tagged.push_back( jet ); }
   }
 
   // We only want events with exactly one b-jet so reject otherwise
+  if( nPassing_2_tag_WP > 1 ) { return EL::StatusCode::SUCCESS; } // exclude events with two loose b-tags
   if( jets_selected_b_tagged.size() != 1 ) { return EL::StatusCode::SUCCESS; }
   ++m_nPassingReco;
 
@@ -196,11 +197,9 @@ EL::StatusCode OneTagCategorisation::execute()
       // Correct pairing
       if( jet->auxdata<char>("HiggsMatched") ) {
         this->fillOutputTree( m_correct_tree, *jets_selected_b_tagged.at(0), *jet );
-        // ->Fill();
       // Incorrect pairing
       } else {
         this->fillOutputTree( m_incorrect_tree, *jets_selected_b_tagged.at(0), *jet );
-        // ->Fill();
       }
     }
   // Case (B): not matched to a b-quark Higgs descendant
@@ -208,7 +207,6 @@ EL::StatusCode OneTagCategorisation::execute()
     // Loop over all non-b jets: all are incorrect pairs
     for( auto jet : jets_selected_non_b_tagged ) {
       this->fillOutputTree( m_incorrect_tree, *jets_selected_b_tagged.at(0), *jet );
-      // ->Fill();
     }
   }
 
@@ -333,13 +331,21 @@ void OneTagCategorisation::fillOutputTree( TTree* outputTree, const xAOD::Jet& b
   m_idx_by_pT = otherjet.auxdata<int>("idx_by_pT");
   m_pT_j = otherjet.pt() / HG::GeV;
   m_abs_eta_j = fabs( otherjet.eta() );
-  m_MV2c20_FCBE_60 = otherjet.auxdata<char>("MV2c20_FixedCutBEff_60");
-  m_MV2c20_FCBE_70 = otherjet.auxdata<char>("MV2c20_FixedCutBEff_70");
-  m_MV2c20_FCBE_77 = otherjet.auxdata<char>("MV2c20_FixedCutBEff_77");
-  m_MV2c20_FCBE_85 = otherjet.auxdata<char>("MV2c20_FixedCutBEff_85");
-  ATH_MSG_DEBUG(  "  Jet with mH: " << m_m_jb << " and pT: " << m_pT_j << " is " << m_idx_by_mH << " by mH and " << m_idx_by_pT << " by pT" );
+  ATH_MSG_DEBUG(  "  Jet with m_jb: " << m_m_jb << " and pT: " << m_pT_j << " is " << m_idx_by_mH << " by mH and " << m_idx_by_pT << " by pT" );
   outputTree->Fill();
   return;
+}
+
+
+
+double OneTagCategorisation::sampleXS( int mcID ) {
+  // Use SM hh cross-section for resonances
+  if( mcID == 341173 ) { return 1e3 * HgammaAnalysis::getCrossSection(341559); } // X275->hh->yybb
+  if( mcID == 341004 ) { return 1e3 * HgammaAnalysis::getCrossSection(341559); } // X300->hh->yybb
+  if( mcID == 341174 ) { return 1e3 * HgammaAnalysis::getCrossSection(341559); } // X325->hh->yybb
+  if( mcID == 341175 ) { return 1e3 * HgammaAnalysis::getCrossSection(341559); } // X350->hh->yybb
+  if( mcID == 341176 ) { return 1e3 * HgammaAnalysis::getCrossSection(341559); } // X400->hh->yybb
+  return 1e3 * HgammaAnalysis::getCrossSection(mcID);
 }
 
 
@@ -357,5 +363,6 @@ double OneTagCategorisation::sumOfWeights( int mcID ) {
   if( mcID == 341174 ) { return 100000; } // X325->hh->yybb
   if( mcID == 341175 ) { return 100000; } // X350->hh->yybb
   if( mcID == 341176 ) { return 100000; } // X400->hh->yybb
+  if( mcID == 341939 ) { return 80604609.6; } // Sherpa photons+jets
   return 1.0;
 }
