@@ -65,8 +65,8 @@ EL::StatusCode OneTagCategorisation::initialize()
   if (sc != EL::StatusCode::SUCCESS) { return sc; }
 
   // Retrieve b-tagging working point
-  m_1_tag_WP = config()->getStr("OneTagCategorisation.1tag.OperatingPoint", "MV2c20_FixedCutBEff_60");
-  m_2_tag_WP = config()->getStr("OneTagCategorisation.2tag.OperatingPoint", "MV2c20_FixedCutBEff_85");
+  m_1_tag_WP = config()->getStr("OneTagCategorisation.1tag.OperatingPoint", "MV2c10_FixedCutBEff_60");
+  m_2_tag_WP = config()->getStr("OneTagCategorisation.2tag.OperatingPoint", "MV2c10_FixedCutBEff_85");
 
   return EL::StatusCode::SUCCESS;
 }
@@ -429,11 +429,11 @@ void OneTagCategorisation::fillOutputTree(TTree *outputTree, const xAOD::Jet& bj
  */
 double OneTagCategorisation::sampleXS(int mcID) {
   // Use SM hh cross-section for resonances
-  if (mcID == 341173) { return 1e3 * this->getCrossSection(341559); } // X275->hh->yybb
-  if (mcID == 341004) { return 1e3 * this->getCrossSection(341559); } // X300->hh->yybb
-  if (mcID == 341174) { return 1e3 * this->getCrossSection(341559); } // X325->hh->yybb
-  if (mcID == 341175) { return 1e3 * this->getCrossSection(341559); } // X350->hh->yybb
-  if (mcID == 341176) { return 1e3 * this->getCrossSection(341559); } // X400->hh->yybb
+  if (mcID == 341173) { return 1e3 * this->getCrossSection(341559) / 5.0; } // X275->hh->yybb
+  if (mcID == 341004) { return 1e3 * this->getCrossSection(341559) / 5.0; } // X300->hh->yybb
+  if (mcID == 341174) { return 1e3 * this->getCrossSection(341559) / 5.0; } // X325->hh->yybb
+  if (mcID == 341175) { return 1e3 * this->getCrossSection(341559) / 5.0; } // X350->hh->yybb
+  if (mcID == 341176) { return 1e3 * this->getCrossSection(341559) / 5.0; } // X400->hh->yybb
   return 1e3 * this->getCrossSection(mcID);
 }
 
