@@ -55,8 +55,8 @@ private:
   /// Get final-state b-quarks
   ConstDataVector<xAOD::TruthParticleContainer> bQuarkHiggsDescendants( const xAOD::TruthParticleContainer *truthPtcls );
 
-  /// Get final-state b-quarks
-  void matchQuarksToJets( ConstDataVector<xAOD::TruthParticleContainer> bQuarks, xAOD::JetContainer jets );
+  // /// Get final-state b-quarks
+  // void matchQuarksToJets( ConstDataVector<xAOD::TruthParticleContainer> bQuarks, xAOD::JetContainer jets );
 
   /// Decorate with pT and mH indices
   void decorateWithIndices( const xAOD::Jet& bjet, xAOD::JetContainer& nonbjets );
