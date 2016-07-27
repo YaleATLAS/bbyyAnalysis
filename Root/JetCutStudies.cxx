@@ -22,7 +22,7 @@ JetCutStudies::JetCutStudies(const char *name)
   , m_event_tree(0)
   , m_event_weight(0)
   , m_sum_mc_weights(0)
-  , m_cutFlow({{"Events", 0}, {"PassingPreselection", 0}, {"ExactlyOneRecoTagged", 0}, {"TruthTagged", 0}, {"TruthMatched", 0}, {"TruthTaggedAndMatched", 0}})
+  , m_cutFlow({{"Events", 0}, {"PassingPreselection", 0}})
 {
   // Here you put any code for the base initialization of variables,
   // e.g. initialize all pointers to 0.  Note that you should only put
@@ -94,6 +94,7 @@ EL::StatusCode JetCutStudies::createOutput()
   m_event_tree->Branch("jet_btag_loose", &m_jet_btag_loose);
   m_event_tree->Branch("jet_btag_tight", &m_jet_btag_tight);
   m_event_tree->Branch("jet_truth_tag",  &m_jet_truth_tag);
+  m_event_tree->Branch("jet_JVT",        &m_jet_JVT);
   m_event_tree->Branch("event_weight",   &m_event_weight);
   return EL::StatusCode::SUCCESS;
 }
@@ -185,6 +186,7 @@ EL::StatusCode JetCutStudies::execute()
   // Clear vectors
   m_jet_pT.clear(); m_jet_eta.clear(); m_jet_phi.clear(); m_jet_E.clear();
   m_jet_btag_loose.clear(); m_jet_btag_tight.clear(); m_jet_truth_tag.clear();
+  m_jet_JVT.clear();
 
   // Fill jet information into tree
   m_jet_n = jets_selected.size();
@@ -196,6 +198,7 @@ EL::StatusCode JetCutStudies::execute()
     m_jet_btag_loose.push_back( jets_selected.at(idx_jet)->auxdata<char>(m_2_tag_WP) );
     m_jet_btag_tight.push_back( jets_selected.at(idx_jet)->auxdata<char>(m_1_tag_WP) );
     m_jet_truth_tag.push_back( jets_selected.at(idx_jet)->auxdata<int>("HadronConeExclTruthLabelID") == 5 );
+    m_jet_JVT.push_back( jets_selected.at(idx_jet)->auxdata<float>("Jvt") );
   }
 
   // Fill event-level tree

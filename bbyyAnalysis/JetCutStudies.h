@@ -31,6 +31,7 @@ private:
   std::vector<bool> m_jet_btag_loose; //!
   std::vector<bool> m_jet_btag_tight; //!
   std::vector<bool> m_jet_truth_tag; //!
+  std::vector<float> m_jet_JVT; //!
 
   /// Event weights
   double m_event_weight; //!
