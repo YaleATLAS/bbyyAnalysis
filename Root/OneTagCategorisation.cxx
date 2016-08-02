@@ -434,14 +434,13 @@ double OneTagCategorisation::sumOfWeights(int mcID) {
   if (mcID == 341064) { return 200000; }     // SM yjjb
   if (mcID == 341065) { return 180000; }     // SM yyjj
   if (mcID == 341066) { return 198000; }     // SM yjjj
-  if (mcID == 341559) { return 100000; }     // SM hh->yybb
+  if (mcID == 341559) { return 100000; }     // SM LO hh->yybb
   if (mcID == 341173) { return 100000; }     // X275->hh->yybb
   if (mcID == 341004) { return 100000; }     // X300->hh->yybb
   if (mcID == 341174) { return 100000; }     // X325->hh->yybb
   if (mcID == 341175) { return 100000; }     // X350->hh->yybb
   if (mcID == 341176) { return 100000; }     // X400->hh->yybb
   if (mcID == 341939) { return 80604609.6; } // Sherpa photons+jets
-  if (mcID == 341559) { return 100000; }     // SM hh->yybb
-  if (mcID == 342620) { return 2134.103; }   // SM hh->yybb (from 200000 events)
+  if (mcID == 342620) { return 2134.103; }   // SM NLO hh->yybb (from 200000 events)
   return 1.0;
 }
