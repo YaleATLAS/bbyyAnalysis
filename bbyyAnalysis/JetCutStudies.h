@@ -31,6 +31,7 @@ private:
   std::vector<bool> m_jet_btag_loose; //!
   std::vector<bool> m_jet_btag_tight; //!
   std::vector<bool> m_jet_truth_tag; //!
+  std::vector<bool> m_jet_higgs_match; //!
   std::vector<double> m_jet_JVT; //!
 
   /// Event weights
@@ -39,12 +40,6 @@ private:
 
   /// Cutflow counters
   std::map< std::string, unsigned int > m_cutFlow; //!
-
-  /// Retrieve sum of MC weights
-  double sampleXS( int mcID );
-
-  /// Retrieve sum of MC weights
-  double sumOfWeights( int mcID );
 
 
 public:

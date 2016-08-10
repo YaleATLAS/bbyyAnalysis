@@ -12,7 +12,7 @@ namespace CommonTools {
    * Decorate muon-corrected value
    * @return nothing
    */
-  inline void correctForMuons(HG::HHyybbTool* yybbTool, xAOD::JetContainer& jets, const xAOD::MuonContainer& muons) {
+  inline void decorateMuonCorrection(HG::HHyybbTool* yybbTool, xAOD::JetContainer& jets, const xAOD::MuonContainer& muons) {
     yybbTool->decorateMuonCorrections(jets, muons);
     std::vector<TLorentzVector> jets_muon_corrected = yybbTool->getMuonCorrJet4Vs(jets);
     assert( jets_muon_corrected.size() == jets.size() );
@@ -103,7 +103,7 @@ namespace CommonTools {
       }
     }
 
-    if( matched_deltaR < 0.4 ) { // 0.6 is 82% efficient; 0.5 is 79% efficient
+    if( matched_deltaR < 0.5 ) { // 0.6 is 82% efficient; 0.5 is 79% efficient; 0.4 is 47% efficient
       ATH_MSG_DEBUG( "=> tagging best matched jets: DeltaR = " << matched_deltaR);
       accHiggsMatched(*jets.at(matched_j1)) = true;
       accHiggsMatched(*jets.at(matched_j2)) = true;
@@ -112,5 +112,42 @@ namespace CommonTools {
 
     ATH_MSG_DEBUG( "=> no jet-pair candidate had a DeltaR of less than 0.4! Best was " << matched_deltaR);
     return false;
+  }
+
+  /**
+   * Return the sample cross-section
+   * @return sample cross-section in fb
+   */
+  inline double sampleXS(int mcID, double default_pb) {
+    // Use Moriond 2016 limits
+    if (mcID == 341173) { return 1e3 * 5.0 /*7.0*/; } // X275->hh->yybb
+    if (mcID == 341004) { return 1e3 * 5.0 /*6.1*/; } // X300->hh->yybb
+    if (mcID == 341174) { return 1e3 * 5.0 /*5.6*/; } // X325->hh->yybb
+    if (mcID == 341175) { return 1e3 * 5.0 /*5.1*/; } // X350->hh->yybb
+    if (mcID == 341176) { return 1e3 * 5.0 /*4.0*/; } // X400->hh->yybb
+    if (mcID == 342620) { return 1e3 * 5.0 /*5.4*/; } // SM NLO hh->yybb
+    return 1e3 * default_pb;
+  }
+
+  /**
+   * Return the sum of MC event weights in each sample
+   * @return sum of MC weights in the sample
+   */
+  inline double sumOfWeights(int mcID) {
+    if (mcID == 341061) { return 197000; }     // SM yybb
+    if (mcID == 341062) { return 200000; }     // SM yjbb
+    if (mcID == 341063) { return 196000; }     // SM yybj
+    if (mcID == 341064) { return 200000; }     // SM yjjb
+    if (mcID == 341065) { return 180000; }     // SM yyjj
+    if (mcID == 341066) { return 198000; }     // SM yjjj
+    if (mcID == 341559) { return 100000; }     // SM LO hh->yybb
+    if (mcID == 341173) { return 100000; }     // X275->hh->yybb
+    if (mcID == 341004) { return 100000; }     // X300->hh->yybb
+    if (mcID == 341174) { return 100000; }     // X325->hh->yybb
+    if (mcID == 341175) { return 100000; }     // X350->hh->yybb
+    if (mcID == 341176) { return 100000; }     // X400->hh->yybb
+    if (mcID == 341939) { return 80604609.6; } // Sherpa photons+jets
+    if (mcID == 342620) { return 2134.103; }   // SM NLO hh->yybb (from 200000 events)
+    return 1.0;
   }
 }

@@ -82,25 +82,26 @@ EL::StatusCode JetCutStudies::createOutput()
   // Add event tree to output file
   m_event_tree = new TTree("events", "events");
   m_event_tree->SetDirectory(file);
-  m_event_tree->Branch("photon_n",       &m_photon_n);
-  m_event_tree->Branch("photon_pT",      &m_photon_pT);
-  m_event_tree->Branch("photon_eta",     &m_photon_eta);
-  m_event_tree->Branch("photon_phi",     &m_photon_phi);
-  m_event_tree->Branch("photon_E",       &m_photon_E);
-  m_event_tree->Branch("photon_isTight", &m_photon_isTight);
-  m_event_tree->Branch("m_yy",           &m_m_yy);
-  m_event_tree->Branch("jet_n",          &m_jet_n);
-  m_event_tree->Branch("jet_pT",         &m_jet_pT);
-  m_event_tree->Branch("jet_eta",        &m_jet_eta);
-  m_event_tree->Branch("jet_phi",        &m_jet_phi);
-  m_event_tree->Branch("jet_E",          &m_jet_E);
-  m_event_tree->Branch("jet_btag_loose", &m_jet_btag_loose);
-  m_event_tree->Branch("jet_btag_tight", &m_jet_btag_tight);
-  m_event_tree->Branch("jet_truth_tag",  &m_jet_truth_tag);
-  m_event_tree->Branch("jet_JVT",        &m_jet_JVT);
-  m_event_tree->Branch("jet_eta_det",    &m_jet_eta_det);
-  m_event_tree->Branch("event_weight",   &m_event_weight);
-  m_event_tree->Branch("pileup_weight",  &m_pileup_weight);
+  m_event_tree->Branch("photon_n",        &m_photon_n);
+  m_event_tree->Branch("photon_pT",       &m_photon_pT);
+  m_event_tree->Branch("photon_eta",      &m_photon_eta);
+  m_event_tree->Branch("photon_phi",      &m_photon_phi);
+  m_event_tree->Branch("photon_E",        &m_photon_E);
+  m_event_tree->Branch("photon_isTight",  &m_photon_isTight);
+  m_event_tree->Branch("m_yy",            &m_m_yy);
+  m_event_tree->Branch("jet_n",           &m_jet_n);
+  m_event_tree->Branch("jet_pT",          &m_jet_pT);
+  m_event_tree->Branch("jet_eta",         &m_jet_eta);
+  m_event_tree->Branch("jet_phi",         &m_jet_phi);
+  m_event_tree->Branch("jet_E",           &m_jet_E);
+  m_event_tree->Branch("jet_btag_loose",  &m_jet_btag_loose);
+  m_event_tree->Branch("jet_btag_tight",  &m_jet_btag_tight);
+  m_event_tree->Branch("jet_truth_tag",   &m_jet_truth_tag);
+  m_event_tree->Branch("jet_higgs_match", &m_jet_higgs_match);
+  m_event_tree->Branch("jet_JVT",         &m_jet_JVT);
+  m_event_tree->Branch("jet_eta_det",     &m_jet_eta_det);
+  m_event_tree->Branch("event_weight",    &m_event_weight);
+  m_event_tree->Branch("pileup_weight",   &m_pileup_weight);
   return EL::StatusCode::SUCCESS;
 }
 
@@ -127,9 +128,9 @@ EL::StatusCode JetCutStudies::execute()
 
   // Get overall event weight, normalised to 1fb-1
   unsigned int mcChannelNumber = eventInfo()->mcChannelNumber();
-  m_event_weight = eventHandler()->mcWeight() * sampleXS(mcChannelNumber) *
+  m_event_weight = eventHandler()->mcWeight() * CommonTools::sampleXS(mcChannelNumber, getCrossSection(mcChannelNumber)) *
                    HgammaAnalysis::getGeneratorEfficiency(mcChannelNumber) *
-                   HgammaAnalysis::getKFactor(mcChannelNumber) / sumOfWeights(mcChannelNumber);
+                   HgammaAnalysis::getKFactor(mcChannelNumber) / CommonTools::sumOfWeights(mcChannelNumber);
 
   // Get pileup weight
   m_pileup_weight = eventHandler()->pileupWeight();
@@ -164,7 +165,17 @@ EL::StatusCode JetCutStudies::execute()
 
   // ___________________________________________________________________________________________
   // Decorate muon correction to jets
-  CommonTools::correctForMuons( yybbTool(), jets_selected, muons_corrected );
+  CommonTools::decorateMuonCorrection( yybbTool(), jets_selected, muons_corrected );
+
+  // ___________________________________________________________________________________________
+  // Retrieve truth-particles and get final Higgs bosons before decay
+  const xAOD::TruthParticleContainer* truthPtcls = 0;
+  EL_CHECK("execute()", event()->retrieve(truthPtcls, "TruthParticles"));
+  const xAOD::TruthParticle* higgs = CommonTools::HbbBeforeDecay(truthPtcls);
+
+  // ___________________________________________________________________________________________
+  // Perform matching to identify jet-quark pairs
+  CommonTools::matchJetsToHiggs( jets_selected, higgs );
 
   // Clear vectors
   m_photon_pT.clear(); m_photon_eta.clear(); m_photon_phi.clear(); m_photon_E.clear();
@@ -191,7 +202,7 @@ EL::StatusCode JetCutStudies::execute()
   // Clear vectors
   m_jet_pT.clear(); m_jet_eta.clear(); m_jet_phi.clear(); m_jet_E.clear();
   m_jet_btag_loose.clear(); m_jet_btag_tight.clear(); m_jet_truth_tag.clear();
-  m_jet_JVT.clear(); m_jet_eta_det.clear();
+  m_jet_higgs_match.clear(); m_jet_JVT.clear(); m_jet_eta_det.clear();
 
   // Fill jet information into tree
   m_jet_n = jets_selected.size();
@@ -203,6 +214,7 @@ EL::StatusCode JetCutStudies::execute()
       m_jet_btag_loose.push_back( jet->auxdata<char>(m_2_tag_WP) );
       m_jet_btag_tight.push_back( jet->auxdata<char>(m_1_tag_WP) );
       m_jet_truth_tag.push_back( jet->auxdata<int>("HadronConeExclTruthLabelID") == 5 );
+      m_jet_higgs_match.push_back( jet->auxdata<char>("HiggsMatched") );
       m_jet_JVT.push_back( jet->auxdata<float>("Jvt") );
       m_jet_eta_det.push_back( jet->getAttribute<xAOD::JetFourMom_t>("JetConstitScaleMomentum").eta() );
   }
@@ -236,40 +248,4 @@ EL::StatusCode JetCutStudies::finalize() {
   ATH_MSG_INFO("The sum of pileup weights in this job was " << m_sum_pileup_weights << " for " << m_cutFlow["Events"]++ << " events.");
   ATH_MSG_INFO(m_cutFlow["PassingPreselection"] << " of " << m_cutFlow["Events"] << " events (" << (m_cutFlow["Events"] > 0 ? 100 * m_cutFlow["PassingPreselection"] / m_cutFlow["Events"] : 0) << "%) passed the HGamma pre-selection.");
   return EL::StatusCode::SUCCESS;
-}
-
-/**
- * Create histogram output: inherited from EL::Algorithm
- * @return an EL::StatusCode indicating success/failure
- */
-double JetCutStudies::sampleXS(int mcID) {
-  // Use SM hh cross-section for resonances
-  if (mcID == 341173) { return 1e3 * 5.0/*this->getCrossSection(342620)*/; } // X275->hh->yybb
-  if (mcID == 341004) { return 1e3 * 5.0/*this->getCrossSection(342620)*/; } // X300->hh->yybb
-  if (mcID == 341174) { return 1e3 * 5.0/*this->getCrossSection(342620)*/; } // X325->hh->yybb
-  if (mcID == 341175) { return 1e3 * 5.0/*this->getCrossSection(342620)*/; } // X350->hh->yybb
-  if (mcID == 341176) { return 1e3 * 5.0/*this->getCrossSection(342620)*/; } // X400->hh->yybb
-  return 1e3 * this->getCrossSection(mcID);
-}
-
-/**
- * Create histogram output: inherited from EL::Algorithm
- * @return an EL::StatusCode indicating success/failure
- */
-double JetCutStudies::sumOfWeights(int mcID) {
-  if (mcID == 341061) { return 197000; }     // SM yybb
-  if (mcID == 341062) { return 200000; }     // SM yjbb
-  if (mcID == 341063) { return 196000; }     // SM yybj
-  if (mcID == 341064) { return 200000; }     // SM yjjb
-  if (mcID == 341065) { return 180000; }     // SM yyjj
-  if (mcID == 341066) { return 198000; }     // SM yjjj
-  if (mcID == 341559) { return 100000; }     // SM LO hh->yybb
-  if (mcID == 341173) { return 100000; }     // X275->hh->yybb
-  if (mcID == 341004) { return 100000; }     // X300->hh->yybb
-  if (mcID == 341174) { return 100000; }     // X325->hh->yybb
-  if (mcID == 341175) { return 100000; }     // X350->hh->yybb
-  if (mcID == 341176) { return 100000; }     // X400->hh->yybb
-  if (mcID == 341939) { return 80604609.6; } // Sherpa photons+jets
-  if (mcID == 342620) { return 2134.103; }   // SM NLO hh->yybb (from 200000 events)
-  return 1.0;
 }

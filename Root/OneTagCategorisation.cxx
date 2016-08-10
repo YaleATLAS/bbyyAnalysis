@@ -145,9 +145,9 @@ EL::StatusCode OneTagCategorisation::execute()
 
   // Get overall event weight, normalised to 1fb-1
   unsigned int mcChannelNumber = eventInfo()->mcChannelNumber();
-  m_event_weight = eventHandler()->mcWeight() * sampleXS(mcChannelNumber) *
+  m_event_weight = eventHandler()->mcWeight() * CommonTools::sampleXS(mcChannelNumber, getCrossSection(mcChannelNumber)) *
                    HgammaAnalysis::getGeneratorEfficiency(mcChannelNumber) *
-                   HgammaAnalysis::getKFactor(mcChannelNumber) / sumOfWeights(mcChannelNumber);
+                   HgammaAnalysis::getKFactor(mcChannelNumber) / CommonTools::sumOfWeights(mcChannelNumber);
 
   // ___________________________________________________________________________________________
   // Fetch default jets
@@ -178,7 +178,7 @@ EL::StatusCode OneTagCategorisation::execute()
 
   // ___________________________________________________________________________________________
   // Decorate muon correction to jets
-  CommonTools::correctForMuons( yybbTool(), jets_selected, muons_corrected );
+  CommonTools::decorateMuonCorrection( yybbTool(), jets_selected, muons_corrected );
 
   // ___________________________________________________________________________________________
   // Retrieve truth-particles and get final Higgs bosons before decay
@@ -306,6 +306,51 @@ EL::StatusCode OneTagCategorisation::finalize() {
 }
 
 
+/**
+ * Create histogram output: inherited from EL::Algorithm
+ * @return an EL::StatusCode indicating success/failure
+ */
+void OneTagCategorisation::decorateWithIndices(const xAOD::Jet& bjet, xAOD::JetContainer& nonbjets) {
+  // Calculate m_jb
+  SG::AuxElement::Accessor<double> accMjb("m_jb");
+  for (auto jet : nonbjets) { accMjb(*jet) = (CommonTools::p4(bjet) + CommonTools::p4(*jet)).M() / HG::GeV; }
+
+  // Sort by distance from mH and add index
+  std::sort(nonbjets.begin(), nonbjets.end(), [](const xAOD::Jet *i, const xAOD::Jet *j) { return fabs(i->auxdata<double>("m_jb") - 125.09) < fabs(j->auxdata<double>("m_jb") - 125.09); });
+  SG::AuxElement::Accessor<int> accIdxByMh("idx_by_mH");
+  for (unsigned int idx = 0; idx < nonbjets.size(); ++idx) { accIdxByMh(*nonbjets.at(idx)) = idx; }
+
+  // Sort by pT and add index
+  std::sort(nonbjets.begin(), nonbjets.end(), [](const xAOD::Jet *i, const xAOD::Jet *j) { return i->pt() > j->pt(); });
+  SG::AuxElement::Accessor<int> accIdxByPt("idx_by_pT");
+  for (unsigned int idx = 0; idx < nonbjets.size(); ++idx) { accIdxByPt(*nonbjets.at(idx)) = idx; }
+}
+
+
+/**
+ * Add jet pairing to event-level vectors
+ * @return nothing
+ */
+void OneTagCategorisation::appendToOutput( const bool& isCorrect, const xAOD::Jet& bjet, const xAOD::Jet& otherjet ) {
+  // Construct jb 4-vector
+  TLorentzVector b_p4(CommonTools::p4(bjet)), j_p4(CommonTools::p4(otherjet));
+  TLorentzVector jb_p4 = b_p4 + j_p4;
+  // Append to vectors for event-level quantities
+  m_v_m_jb.push_back( jb_p4.M() / HG::GeV );
+  m_v_pT_jb.push_back( jb_p4.Pt() / HG::GeV );
+  m_v_abs_eta_jb.push_back( fabs(jb_p4.Eta()) );
+  m_v_Delta_eta_jb.push_back( fabs(b_p4.Eta() - j_p4.Eta()) );
+  m_v_Delta_phi_jb.push_back( fabs(b_p4.DeltaPhi(j_p4)) );
+  m_v_idx_by_mH.push_back( otherjet.auxdata<int>("idx_by_mH") );
+  m_v_idx_by_pT.push_back( otherjet.auxdata<int>("idx_by_pT") );
+  m_v_pT_j.push_back( j_p4.Pt() / HG::GeV );
+  m_v_abs_eta_j.push_back( fabs(j_p4.Eta()) );
+  m_v_isCorrect.push_back( isCorrect );
+}
+
+
+
+
 // /**
 //  * Create histogram output: inherited from EL::Algorithm
 //  * @return an EL::StatusCode indicating success/failure
@@ -350,82 +395,3 @@ EL::StatusCode OneTagCategorisation::finalize() {
 //     }
 //   }
 // }
-
-/**
- * Create histogram output: inherited from EL::Algorithm
- * @return an EL::StatusCode indicating success/failure
- */
-void OneTagCategorisation::decorateWithIndices(const xAOD::Jet& bjet, xAOD::JetContainer& nonbjets) {
-  // Calculate m_jb
-  SG::AuxElement::Accessor<double> accMjb("m_jb");
-  for (auto jet : nonbjets) { accMjb(*jet) = (CommonTools::p4(bjet) + CommonTools::p4(*jet)).M() / HG::GeV; }
-
-  // Sort by distance from mH and add index
-  std::sort(nonbjets.begin(), nonbjets.end(), [](const xAOD::Jet *i, const xAOD::Jet *j) { return fabs(i->auxdata<double>("m_jb") - 125.09) < fabs(j->auxdata<double>("m_jb") - 125.09); });
-  SG::AuxElement::Accessor<int> accIdxByMh("idx_by_mH");
-  for (unsigned int idx = 0; idx < nonbjets.size(); ++idx) { accIdxByMh(*nonbjets.at(idx)) = idx; }
-
-  // Sort by pT and add index
-  std::sort(nonbjets.begin(), nonbjets.end(), [](const xAOD::Jet *i, const xAOD::Jet *j) { return i->pt() > j->pt(); });
-  SG::AuxElement::Accessor<int> accIdxByPt("idx_by_pT");
-  for (unsigned int idx = 0; idx < nonbjets.size(); ++idx) { accIdxByPt(*nonbjets.at(idx)) = idx; }
-}
-
-
-/**
- * Add jet pairing to event-level vectors
- * @return nothing
- */
-void OneTagCategorisation::appendToOutput( const bool& isCorrect, const xAOD::Jet& bjet, const xAOD::Jet& otherjet ) {
-  // Construct jb 4-vector
-  TLorentzVector b_p4(CommonTools::p4(bjet)), j_p4(CommonTools::p4(otherjet));
-  TLorentzVector jb_p4 = b_p4 + j_p4;
-  // Append to vectors for event-level quantities
-  m_v_m_jb.push_back( jb_p4.M() / HG::GeV );
-  m_v_pT_jb.push_back( jb_p4.Pt() / HG::GeV );
-  m_v_abs_eta_jb.push_back( fabs(jb_p4.Eta()) );
-  m_v_Delta_eta_jb.push_back( fabs(b_p4.Eta() - j_p4.Eta()) );
-  m_v_Delta_phi_jb.push_back( fabs(b_p4.DeltaPhi(j_p4)) );
-  m_v_idx_by_mH.push_back( otherjet.auxdata<int>("idx_by_mH") );
-  m_v_idx_by_pT.push_back( otherjet.auxdata<int>("idx_by_pT") );
-  m_v_pT_j.push_back( j_p4.Pt() / HG::GeV );
-  m_v_abs_eta_j.push_back( fabs(j_p4.Eta()) );
-  m_v_isCorrect.push_back( isCorrect );
-}
-
-
-/**
- * Create histogram output: inherited from EL::Algorithm
- * @return an EL::StatusCode indicating success/failure
- */
-double OneTagCategorisation::sampleXS(int mcID) {
-  // Use SM hh cross-section for resonances
-  if (mcID == 341173) { return 1e3 * this->getCrossSection(342620) / 5.0; } // X275->hh->yybb
-  if (mcID == 341004) { return 1e3 * this->getCrossSection(342620) / 5.0; } // X300->hh->yybb
-  if (mcID == 341174) { return 1e3 * this->getCrossSection(342620) / 5.0; } // X325->hh->yybb
-  if (mcID == 341175) { return 1e3 * this->getCrossSection(342620) / 5.0; } // X350->hh->yybb
-  if (mcID == 341176) { return 1e3 * this->getCrossSection(342620) / 5.0; } // X400->hh->yybb
-  return 1e3 * this->getCrossSection(mcID);
-}
-
-/**
- * Create histogram output: inherited from EL::Algorithm
- * @return an EL::StatusCode indicating success/failure
- */
-double OneTagCategorisation::sumOfWeights(int mcID) {
-  if (mcID == 341061) { return 197000; }     // SM yybb
-  if (mcID == 341062) { return 200000; }     // SM yjbb
-  if (mcID == 341063) { return 196000; }     // SM yybj
-  if (mcID == 341064) { return 200000; }     // SM yjjb
-  if (mcID == 341065) { return 180000; }     // SM yyjj
-  if (mcID == 341066) { return 198000; }     // SM yjjj
-  if (mcID == 341559) { return 100000; }     // SM LO hh->yybb
-  if (mcID == 341173) { return 100000; }     // X275->hh->yybb
-  if (mcID == 341004) { return 100000; }     // X300->hh->yybb
-  if (mcID == 341174) { return 100000; }     // X325->hh->yybb
-  if (mcID == 341175) { return 100000; }     // X350->hh->yybb
-  if (mcID == 341176) { return 100000; }     // X400->hh->yybb
-  if (mcID == 341939) { return 80604609.6; } // Sherpa photons+jets
-  if (mcID == 342620) { return 2134.103; }   // SM NLO hh->yybb (from 200000 events)
-  return 1.0;
-}
