@@ -24,18 +24,18 @@ private:
   double m_m_yy; //!
   unsigned int m_photon_n, m_jet_n; //!
   std::vector<double> m_photon_pT, m_jet_pT; //!
-  std::vector<double> m_photon_eta, m_jet_eta; //!
+  std::vector<double> m_photon_eta, m_jet_eta, m_jet_eta_det; //!
   std::vector<double> m_photon_phi, m_jet_phi; //!
   std::vector<double> m_photon_E, m_jet_E; //!
   std::vector<bool> m_photon_isTight; //!
   std::vector<bool> m_jet_btag_loose; //!
   std::vector<bool> m_jet_btag_tight; //!
   std::vector<bool> m_jet_truth_tag; //!
-  std::vector<float> m_jet_JVT; //!
+  std::vector<double> m_jet_JVT; //!
 
   /// Event weights
-  double m_event_weight; //!
-  double m_sum_mc_weights; //!
+  double m_event_weight, m_pileup_weight; //!
+  double m_sum_mc_weights, m_sum_pileup_weights; //!
 
   /// Cutflow counters
   std::map< std::string, unsigned int > m_cutFlow; //!

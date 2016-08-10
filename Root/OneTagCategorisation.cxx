@@ -8,10 +8,10 @@
  */
 
 #include "bbyyAnalysis/OneTagCategorisation.h"
+#include "bbyyAnalysis/CommonTools.hpp"
 #include <AsgTools/MsgStream.h>
 #include <AsgTools/MsgStreamMacros.h>
 #include <boost/format.hpp>
-
 // this is needed to distribute the algorithm to the workers
 ClassImp(OneTagCategorisation)
 
@@ -19,9 +19,8 @@ OneTagCategorisation::OneTagCategorisation(const char *name)
   : HgammaAnalysis(name)
   , m_1_tag_WP("")
   , m_2_tag_WP("")
-  , m_correct_tree(0)
-  , m_incorrect_tree(0)
-  , m_event_tree(0)
+  , m_event_tree_1tag(0)
+  , m_event_tree_2tag(0)
   , m_v_m_jb(0)
   , m_v_pT_jb(0)
   , m_v_abs_eta_jb(0)
@@ -34,7 +33,7 @@ OneTagCategorisation::OneTagCategorisation(const char *name)
   , m_v_isCorrect(0)
   , m_event_weight(0)
   , m_sum_mc_weights(0)
-  , m_cutFlow({{"Events", 0}, {"PassingPreselection", 0}, {"ExactlyOneRecoTagged", 0}, {"TruthTagged", 0}, {"TruthMatched", 0}, {"TruthTaggedAndMatched", 0}})
+  , m_cutFlow({{"Events", 0}, {"PassingPreselection", 0}, {"PassedBTagging", 0}, {"is1tag", 0}, {"is2tag", 0}, {"correctPairs", 0}, {"incorrectPairs", 0}})
 {
   // Here you put any code for the base initialization of variables,
   // e.g. initialize all pointers to 0.  Note that you should only put
@@ -82,53 +81,41 @@ EL::StatusCode OneTagCategorisation::createOutput()
   // registry is already filled.
   /// Initialise baseclass
   const auto sc = HgammaAnalysis::createOutput();
-
   if (sc != EL::StatusCode::SUCCESS) { return sc; }
 
   // Add correct choice tree to output file
   ATH_MSG_INFO("Creating output trees...");
   TFile *file = wk()->getOutputFile("MxAOD");
-  m_correct_tree = new TTree("correct", "correct");
-  m_correct_tree->SetDirectory(file);
-  m_correct_tree->Branch("abs_eta_j",    &m_abs_eta_j);
-  m_correct_tree->Branch("abs_eta_jb",   &m_abs_eta_jb);
-  m_correct_tree->Branch("Delta_eta_jb", &m_Delta_eta_jb);
-  m_correct_tree->Branch("Delta_phi_jb", &m_Delta_phi_jb);
-  m_correct_tree->Branch("idx_by_mH",    &m_idx_by_mH);
-  m_correct_tree->Branch("idx_by_pT",    &m_idx_by_pT);
-  m_correct_tree->Branch("m_jb",         &m_m_jb);
-  m_correct_tree->Branch("pT_j",         &m_pT_j);
-  m_correct_tree->Branch("pT_jb",        &m_pT_jb);
-  m_correct_tree->Branch("event_weight", &m_event_weight);
 
-  // Add incorrect choice tree to output file
-  m_incorrect_tree = new TTree("incorrect", "incorrect");
-  m_incorrect_tree->SetDirectory(file);
-  m_incorrect_tree->Branch("abs_eta_j",    &m_abs_eta_j);
-  m_incorrect_tree->Branch("abs_eta_jb",   &m_abs_eta_jb);
-  m_incorrect_tree->Branch("Delta_eta_jb", &m_Delta_eta_jb);
-  m_incorrect_tree->Branch("Delta_phi_jb", &m_Delta_phi_jb);
-  m_incorrect_tree->Branch("idx_by_mH",    &m_idx_by_mH);
-  m_incorrect_tree->Branch("idx_by_pT",    &m_idx_by_pT);
-  m_incorrect_tree->Branch("m_jb",         &m_m_jb);
-  m_incorrect_tree->Branch("pT_j",         &m_pT_j);
-  m_incorrect_tree->Branch("pT_jb",        &m_pT_jb);
-  m_incorrect_tree->Branch("event_weight", &m_event_weight);
+  // Add 1-tag event tree to output file
+  m_event_tree_1tag = new TTree("events_1tag", "events_1tag");
+  m_event_tree_1tag->SetDirectory(file);
+  m_event_tree_1tag->Branch("abs_eta_j",    &m_v_abs_eta_j);
+  m_event_tree_1tag->Branch("abs_eta_jb",   &m_v_abs_eta_jb);
+  m_event_tree_1tag->Branch("Delta_eta_jb", &m_v_Delta_eta_jb);
+  m_event_tree_1tag->Branch("Delta_phi_jb", &m_v_Delta_phi_jb);
+  m_event_tree_1tag->Branch("idx_by_mH",    &m_v_idx_by_mH);
+  m_event_tree_1tag->Branch("idx_by_pT",    &m_v_idx_by_pT);
+  m_event_tree_1tag->Branch("m_jb",         &m_v_m_jb);
+  m_event_tree_1tag->Branch("pT_j",         &m_v_pT_j);
+  m_event_tree_1tag->Branch("pT_jb",        &m_v_pT_jb);
+  m_event_tree_1tag->Branch("isCorrect",    &m_v_isCorrect);
+  m_event_tree_1tag->Branch("event_weight", &m_event_weight);
 
-  // Add event tree to output file
-  m_event_tree = new TTree("events", "events");
-  m_event_tree->SetDirectory(file);
-  m_event_tree->Branch("abs_eta_j",    &m_v_abs_eta_j);
-  m_event_tree->Branch("abs_eta_jb",   &m_v_abs_eta_jb);
-  m_event_tree->Branch("Delta_eta_jb", &m_v_Delta_eta_jb);
-  m_event_tree->Branch("Delta_phi_jb", &m_v_Delta_phi_jb);
-  m_event_tree->Branch("idx_by_mH",    &m_v_idx_by_mH);
-  m_event_tree->Branch("idx_by_pT",    &m_v_idx_by_pT);
-  m_event_tree->Branch("m_jb",         &m_v_m_jb);
-  m_event_tree->Branch("pT_j",         &m_v_pT_j);
-  m_event_tree->Branch("pT_jb",        &m_v_pT_jb);
-  m_event_tree->Branch("isCorrect",    &m_v_isCorrect);
-  m_event_tree->Branch("event_weight", &m_event_weight);
+  // Add 2-tag event tree to output file
+  m_event_tree_2tag = new TTree("events_2tag", "events_2tag");
+  m_event_tree_2tag->SetDirectory(file);
+  m_event_tree_2tag->Branch("abs_eta_j",    &m_v_abs_eta_j);
+  m_event_tree_2tag->Branch("abs_eta_jb",   &m_v_abs_eta_jb);
+  m_event_tree_2tag->Branch("Delta_eta_jb", &m_v_Delta_eta_jb);
+  m_event_tree_2tag->Branch("Delta_phi_jb", &m_v_Delta_phi_jb);
+  m_event_tree_2tag->Branch("idx_by_mH",    &m_v_idx_by_mH);
+  m_event_tree_2tag->Branch("idx_by_pT",    &m_v_idx_by_pT);
+  m_event_tree_2tag->Branch("m_jb",         &m_v_m_jb);
+  m_event_tree_2tag->Branch("pT_j",         &m_v_pT_j);
+  m_event_tree_2tag->Branch("pT_jb",        &m_v_pT_jb);
+  m_event_tree_2tag->Branch("isCorrect",    &m_v_isCorrect);
+  m_event_tree_2tag->Branch("event_weight", &m_event_weight);
   return EL::StatusCode::SUCCESS;
 }
 
@@ -150,7 +137,6 @@ EL::StatusCode OneTagCategorisation::execute()
   // Important to keep this, so that internal tools / event variables
   // are filled properly.
   const auto sc = HgammaAnalysis::execute();
-
   if (sc != EL::StatusCode::SUCCESS) { return sc; }
 
   // Get MC weight
@@ -190,75 +176,104 @@ EL::StatusCode OneTagCategorisation::execute()
   }
   m_cutFlow["PassingPreselection"]++;
 
-  // // ___________________________________________________________________________________________
-  // // Perform matching to identify jet-quark pairs
-  // matchQuarksToJets(bQuarksSelected, jets_selected);
+  // ___________________________________________________________________________________________
+  // Decorate muon correction to jets
+  CommonTools::correctForMuons( yybbTool(), jets_selected, muons_corrected );
+
+  // ___________________________________________________________________________________________
+  // Retrieve truth-particles and get final Higgs bosons before decay
+  const xAOD::TruthParticleContainer* truthPtcls = 0;
+  EL_CHECK("execute()", event()->retrieve(truthPtcls, "TruthParticles"));
+  const xAOD::TruthParticle* higgs = CommonTools::HbbBeforeDecay(truthPtcls);
+  bool isHiggsEvent(higgs != 0);
+
+  // ___________________________________________________________________________________________
+  // Perform matching to identify jet-quark pairs
+  CommonTools::matchJetsToHiggs( jets_selected, higgs );
 
   // ___________________________________________________________________________________________
   // Construct b-jets container
-  unsigned int nPassing_2_tag_WP(0);
-  xAOD::JetContainer jets_selected_b_tagged(SG::VIEW_ELEMENTS);
-  xAOD::JetContainer jets_selected_non_b_tagged(SG::VIEW_ELEMENTS);
+  xAOD::JetContainer jets_passing_2tag_WP(SG::VIEW_ELEMENTS);
+  xAOD::JetContainer jets_passing_1tag_WP(SG::VIEW_ELEMENTS);
+  xAOD::JetContainer jets_failing_1tag_WP(SG::VIEW_ELEMENTS);
 
   for (auto jet : jets_selected) {
-    if (jet->auxdata<char>(m_2_tag_WP)) { nPassing_2_tag_WP++; }
-    if (jet->auxdata<char>(m_1_tag_WP)) { jets_selected_b_tagged.push_back(jet); }
-    else { jets_selected_non_b_tagged.push_back(jet); }
+    if (jet->auxdata<char>(m_2_tag_WP)) { jets_passing_2tag_WP.push_back(jet); }
+    if (jet->auxdata<char>(m_1_tag_WP)) { jets_passing_1tag_WP.push_back(jet); }
+    else { jets_failing_1tag_WP.push_back(jet); }
   }
 
   // ___________________________________________________________________________________________
-  // We only want events with exactly one b-jet so reject if...
-  if (nPassing_2_tag_WP > 1) { return EL::StatusCode::SUCCESS; } // there are two loose b-tags
-  if (jets_selected_b_tagged.size() != 1) { return EL::StatusCode::SUCCESS; } // or not exactly one tight b-tag
-  m_cutFlow["ExactlyOneRecoTagged"]++;
+  // Reject 0-tag and 3-tag events
+  if (jets_passing_2tag_WP.size() > 2) { return EL::StatusCode::SUCCESS; } // more than two loose b-tags => 3-tag
+  if (jets_passing_1tag_WP.size() < 1) { return EL::StatusCode::SUCCESS; } // less than one tight b-tags => 0-tag
+  m_cutFlow["PassedBTagging"]++;
 
-  // ___________________________________________________________________________________________
-  // Retrieve truth-particles and count number of b-quarks descended from Higgs bosons
-  const xAOD::TruthParticleContainer *truthPtcls = 0;
-  EL_CHECK("execute()", event()->retrieve(truthPtcls, "TruthParticles"));
-  bool isHiggsEvent(bQuarkHiggsDescendants(truthPtcls).size() > 0);
+  // Consider 1-tag and 2-tag events separately
+  if (jets_passing_2tag_WP.size() < 2 && jets_passing_1tag_WP.size() == 1) {
+    // ___________________________________________________________________________________________
+    // This is a 1-tag event
+    m_cutFlow["is1tag"]++;
 
-  // ___________________________________________________________________________________________
-  // Events with a real Higgs but more than one truth-tagged non-b reco jet are ambiguous - reject them
-  if (isHiggsEvent) {
-    unsigned int nTruthTaggedNonBJets(0);
-    for (auto jet : jets_selected_non_b_tagged) {
-      if (jet->auxdata<int>("HadronConeExclTruthLabelID") == 5) { ++nTruthTaggedNonBJets; }
-    }
-    if (nTruthTaggedNonBJets != 1) { return EL::StatusCode::SUCCESS; }
-    m_cutFlow["ExactlyOneNonTaggedB"]++;
-  }
+    // Decorate non-b-jets with their order in pT or distance from mH
+    decorateWithIndices(*jets_passing_1tag_WP.at(0), jets_failing_1tag_WP);
+    bool passesHiggsMatched(false), passesHadronConeExclTruthLabelID(false);
 
-  // ___________________________________________________________________________________________
-  // Decorate non-b-jets with their order in pT or distance from mH
-  decorateWithIndices(*jets_selected_b_tagged.at(0), jets_selected_non_b_tagged);
+    // Case (A): this is a Higgs event
+    if (isHiggsEvent) {
+      // Loop over non b-jets and look for any that are truth-tagged
+      for (auto jet : jets_failing_1tag_WP) {
+        if (jet->auxdata<char>("HiggsMatched")) { passesHiggsMatched = true; }
+        if (jet->auxdata<int>("HadronConeExclTruthLabelID") == 5) { passesHadronConeExclTruthLabelID = true; }
+        // Correct pairing
+        if (jet->auxdata<char>("HiggsMatched")) {
+          appendToOutput( true, *jets_passing_1tag_WP.at(0), *jet );
+          m_cutFlow["correctPairs"]++;
+        // Incorrect pairing
+        } else {
+          appendToOutput( false, *jets_passing_1tag_WP.at(0), *jet );
+          m_cutFlow["incorrectPairs"]++;
+        }
+      }
 
-  // Case (A): this is a Higgs event
-  if (isHiggsEvent) {
-    // Loop over non b-jets and look for any that are truth-tagged
-    for (auto jet : jets_selected_non_b_tagged) {
-      // Correct pairing
-      if (jet->auxdata<int>("HadronConeExclTruthLabelID") == 5) {
-        this->fillOutputTree(m_correct_tree, *jets_selected_b_tagged.at(0), *jet);
-      // Incorrect pairing
-      } else {
-        this->fillOutputTree(m_incorrect_tree, *jets_selected_b_tagged.at(0), *jet);
+    // Case (B): this is not a Higgs event
+    } else {
+      // Loop over all non-b jets: all are incorrect pairs
+      for (auto jet : jets_failing_1tag_WP) {
+        appendToOutput( false, *jets_passing_1tag_WP.at(0), *jet );
+        m_cutFlow["incorrectPairs"]++;
       }
     }
 
-  // Case (B): this is not a Higgs event
-  } else {
-    // Loop over all non-b jets: all are incorrect pairs
-    for (auto jet : jets_selected_non_b_tagged) {
-      this->fillOutputTree(m_incorrect_tree, *jets_selected_b_tagged.at(0), *jet);
-    }
-  }
+    // Fill 1-tag event-level tree
+    if (passesHiggsMatched) { m_cutFlow["HiggsMatched"]++; }
+    if (passesHadronConeExclTruthLabelID) { m_cutFlow["HadronConeExclTruthLabelID"]++; }
+    m_event_tree_1tag->Fill();
 
-  // Fill event-level tree
-  m_event_tree->Fill();
+
+  } else if (jets_passing_2tag_WP.size() == 2) {
+    // ___________________________________________________________________________________________
+    // This is a 2-tag event
+    m_cutFlow["is2tag"]++;
+
+    // Set indices to 1 in both cases
+    xAOD::JetContainer second_bjet(SG::VIEW_ELEMENTS); second_bjet.push_back(jets_passing_2tag_WP.at(1));
+    decorateWithIndices(*jets_passing_2tag_WP.at(0), second_bjet);
+
+    // If both are matched then this is the correct pair
+    if( jets_passing_2tag_WP.at(0)->auxdata<char>("HiggsMatched") && jets_passing_2tag_WP.at(1)->auxdata<char>("HiggsMatched") ) {
+      appendToOutput( true, *jets_passing_2tag_WP.at(0), *jets_passing_2tag_WP.at(1) );
+    } else {
+      appendToOutput( false, *jets_passing_2tag_WP.at(0), *jets_passing_2tag_WP.at(1) );
+    }
+
+    // Fill 2-tag event-level tree
+    m_event_tree_2tag->Fill();
+  }
 
   return EL::StatusCode::SUCCESS;
 }
+
 
 /**
  * Cleanup after last event has been processed: inherited from EL::Algorithm
@@ -276,35 +291,20 @@ EL::StatusCode OneTagCategorisation::finalize() {
   // gets called on worker nodes that processed input events.
 
   const auto sc = HgammaAnalysis::finalize();
-
   if (sc != EL::StatusCode::SUCCESS) { return sc; }
 
   ATH_MSG_INFO("The sum of MC weights in this job for channel " << eventInfo()->mcChannelNumber() << " was " << m_sum_mc_weights << " from " << m_cutFlow["Events"]++ << " events.");
   ATH_MSG_INFO(m_cutFlow["PassingPreselection"] << " of " << m_cutFlow["Events"] << " events (" << (m_cutFlow["Events"] > 0 ? 100 * m_cutFlow["PassingPreselection"] / m_cutFlow["Events"] : 0) << "%) passed the HGamma pre-selection.");
-  ATH_MSG_INFO(m_cutFlow["ExactlyOneRecoTagged"] << " of " << m_cutFlow["PassingPreselection"] << " events (" << (m_cutFlow["PassingPreselection"] > 0 ? 100 * m_cutFlow["ExactlyOneRecoTagged"] / m_cutFlow["PassingPreselection"] : 0) << "%) had exactly one reconstructed b-jet.");
-  ATH_MSG_INFO("How many events have a matched non-b-tagged jet using: ");
-  ATH_MSG_INFO("... HadronConeExclTruthLabelID truth-tagging?          " << m_cutFlow["ExactlyOneNonTaggedB"] << " of " << m_cutFlow["ExactlyOneRecoTagged"] << " events (" << (m_cutFlow["ExactlyOneRecoTagged"] > 0 ? 100 * m_cutFlow["ExactlyOneNonTaggedB"] / m_cutFlow["ExactlyOneRecoTagged"] : 0) << "%)");
-  ATH_MSG_INFO("This corresponded to: " << m_correct_tree->GetEntries() << " correct pairs and " << m_incorrect_tree->GetEntries() << " incorrect pairs");
+  ATH_MSG_INFO(m_cutFlow["PassedBTagging"] << " of " << m_cutFlow["PassingPreselection"] << " events (" << (m_cutFlow["PassingPreselection"] > 0 ? 100 * m_cutFlow["PassedBTagging"] / m_cutFlow["PassingPreselection"] : 0) << "%) were in the signal categories.");
+  ATH_MSG_INFO("...  " << m_cutFlow["is1tag"] << " (" << (m_cutFlow["PassedBTagging"] > 0 ? 100 * m_cutFlow["is1tag"] / m_cutFlow["PassedBTagging"] : 0) << "%) 1-tag events");
+  ATH_MSG_INFO("...  " << m_cutFlow["is2tag"] << " (" << (m_cutFlow["PassedBTagging"] > 0 ? 100 * m_cutFlow["is2tag"] / m_cutFlow["PassedBTagging"] : 0) << "%) 2-tag events");
+  ATH_MSG_INFO("How many 1-tag events have a matched non-b-tagged jet using: ");
+  ATH_MSG_INFO("... Higgs 4-vector matching?                           " << m_cutFlow["HiggsMatched"] << " of " << m_cutFlow["is1tag"] << " events (" << (m_cutFlow["is1tag"] > 0 ? 100 * m_cutFlow["HiggsMatched"] / m_cutFlow["is1tag"] : 0) << "%)");
+  ATH_MSG_INFO("... HadronConeExclTruthLabelID truth-tagging?          " << m_cutFlow["HadronConeExclTruthLabelID"] << " of " << m_cutFlow["is1tag"] << " events (" << (m_cutFlow["is1tag"] > 0 ? 100 * m_cutFlow["HadronConeExclTruthLabelID"] / m_cutFlow["is1tag"] : 0) << "%)");
+  ATH_MSG_INFO("=> this corresponds to: " << m_cutFlow["correctPairs"] << " correct pairs and " << m_cutFlow["incorrectPairs"] << " incorrect pairs");
   return EL::StatusCode::SUCCESS;
 }
 
-/**
- * Create histogram output: inherited from EL::Algorithm
- * @return an EL::StatusCode indicating success/failure
- */
-ConstDataVector<xAOD::TruthParticleContainer>OneTagCategorisation::bQuarkHiggsDescendants( const xAOD::TruthParticleContainer *truthPtcls ) {
-  // Select all final-state b-quarks with Higgs ancestors
-  ConstDataVector<xAOD::TruthParticleContainer> bQuarkHiggsDescendantsFinalState(SG::VIEW_ELEMENTS);
-
-  for (auto ptcl : *truthPtcls) {
-    // All-status b-quarks from a Higgs decay
-    if ((fabs(ptcl->pdgId()) == 5) && HG::isFromHiggs(ptcl) /*&& (ptcl->status() == 23)*/) { // Outgoing ME is status 23 only in Pythia
-      bQuarkHiggsDescendantsFinalState.push_back(ptcl);
-    }
-  }
-  ATH_MSG_DEBUG("There are " << bQuarkHiggsDescendantsFinalState.size() << " b-quarks (all statuses) which are descended from Higgs bosons");
-  return bQuarkHiggsDescendantsFinalState;
-}
 
 // /**
 //  * Create histogram output: inherited from EL::Algorithm
@@ -358,56 +358,41 @@ ConstDataVector<xAOD::TruthParticleContainer>OneTagCategorisation::bQuarkHiggsDe
 void OneTagCategorisation::decorateWithIndices(const xAOD::Jet& bjet, xAOD::JetContainer& nonbjets) {
   // Calculate m_jb
   SG::AuxElement::Accessor<double> accMjb("m_jb");
+  for (auto jet : nonbjets) { accMjb(*jet) = (CommonTools::p4(bjet) + CommonTools::p4(*jet)).M() / HG::GeV; }
 
-  for (auto jet : nonbjets) { accMjb(*jet) = (bjet.p4() + jet->p4()).M() / HG::GeV; }
-
-  // Sort by distance from mH
-  std::sort(nonbjets.begin(), nonbjets.end(), [](const xAOD::Jet *i, const xAOD::Jet *j) { return fabs(i->auxdata<double>("m_jb") - 125.04) < fabs(j->auxdata<double>("m_jb") - 125.04); });
-
-  // Add indexing by distance from mH
+  // Sort by distance from mH and add index
+  std::sort(nonbjets.begin(), nonbjets.end(), [](const xAOD::Jet *i, const xAOD::Jet *j) { return fabs(i->auxdata<double>("m_jb") - 125.09) < fabs(j->auxdata<double>("m_jb") - 125.09); });
   SG::AuxElement::Accessor<int> accIdxByMh("idx_by_mH");
-
   for (unsigned int idx = 0; idx < nonbjets.size(); ++idx) { accIdxByMh(*nonbjets.at(idx)) = idx; }
 
-  // Sort by distance from pT
+  // Sort by pT and add index
   std::sort(nonbjets.begin(), nonbjets.end(), [](const xAOD::Jet *i, const xAOD::Jet *j) { return i->pt() > j->pt(); });
-
-  // Add indexing by pT
   SG::AuxElement::Accessor<int> accIdxByPt("idx_by_pT");
-
   for (unsigned int idx = 0; idx < nonbjets.size(); ++idx) { accIdxByPt(*nonbjets.at(idx)) = idx; }
 }
 
+
 /**
- * Create histogram output: inherited from EL::Algorithm
- * @return an EL::StatusCode indicating success/failure
+ * Add jet pairing to event-level vectors
+ * @return nothing
  */
-void OneTagCategorisation::fillOutputTree(TTree *outputTree, const xAOD::Jet& bjet, const xAOD::Jet& otherjet) {
-  TLorentzVector jb_p4 = bjet.p4() + otherjet.p4();
-  // Fill doubles for jet-level quantities
-  m_m_jb         = jb_p4.M() / HG::GeV;
-  m_pT_jb        = jb_p4.Pt() / HG::GeV;
-  m_abs_eta_jb   = fabs(jb_p4.Eta());
-  m_Delta_eta_jb = fabs(bjet.eta() - otherjet.eta());
-  m_Delta_phi_jb = fabs(bjet.p4().DeltaPhi(otherjet.p4()));
-  m_idx_by_mH    = otherjet.auxdata<int>("idx_by_mH");
-  m_idx_by_pT    = otherjet.auxdata<int>("idx_by_pT");
-  m_pT_j         = otherjet.pt() / HG::GeV;
-  m_abs_eta_j    = fabs(otherjet.eta());
-  ATH_MSG_DEBUG("  Jet with m_jb: " << m_m_jb << " and pT: " << m_pT_j << " is " << m_idx_by_mH << " by mH and " << m_idx_by_pT << " by pT");
-  outputTree->Fill();
-  // Fill vectors for event-level quantities
-  m_v_m_jb.push_back(m_m_jb);
-  m_v_pT_jb.push_back(m_pT_jb);
-  m_v_abs_eta_jb.push_back(m_abs_eta_jb);
-  m_v_Delta_eta_jb.push_back(m_Delta_eta_jb);
-  m_v_Delta_phi_jb.push_back(m_Delta_phi_jb);
-  m_v_idx_by_mH.push_back(m_idx_by_mH);
-  m_v_idx_by_pT.push_back(m_idx_by_pT);
-  m_v_pT_j.push_back(m_pT_j);
-  m_v_abs_eta_j.push_back(m_abs_eta_j);
-  m_v_isCorrect.push_back((strcmp(outputTree->GetName(), "correct") == 0 ? 1 : 0));
+void OneTagCategorisation::appendToOutput( const bool& isCorrect, const xAOD::Jet& bjet, const xAOD::Jet& otherjet ) {
+  // Construct jb 4-vector
+  TLorentzVector b_p4(CommonTools::p4(bjet)), j_p4(CommonTools::p4(otherjet));
+  TLorentzVector jb_p4 = b_p4 + j_p4;
+  // Append to vectors for event-level quantities
+  m_v_m_jb.push_back( jb_p4.M() / HG::GeV );
+  m_v_pT_jb.push_back( jb_p4.Pt() / HG::GeV );
+  m_v_abs_eta_jb.push_back( fabs(jb_p4.Eta()) );
+  m_v_Delta_eta_jb.push_back( fabs(b_p4.Eta() - j_p4.Eta()) );
+  m_v_Delta_phi_jb.push_back( fabs(b_p4.DeltaPhi(j_p4)) );
+  m_v_idx_by_mH.push_back( otherjet.auxdata<int>("idx_by_mH") );
+  m_v_idx_by_pT.push_back( otherjet.auxdata<int>("idx_by_pT") );
+  m_v_pT_j.push_back( j_p4.Pt() / HG::GeV );
+  m_v_abs_eta_j.push_back( fabs(j_p4.Eta()) );
+  m_v_isCorrect.push_back( isCorrect );
 }
+
 
 /**
  * Create histogram output: inherited from EL::Algorithm

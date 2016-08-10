@@ -8,6 +8,7 @@
  */
 
 #include "bbyyAnalysis/JetCutStudies.h"
+#include "bbyyAnalysis/CommonTools.hpp"
 #include <AsgTools/MsgStream.h>
 #include <AsgTools/MsgStreamMacros.h>
 #include <boost/format.hpp>
@@ -21,7 +22,9 @@ JetCutStudies::JetCutStudies(const char *name)
   , m_2_tag_WP("")
   , m_event_tree(0)
   , m_event_weight(0)
+  , m_pileup_weight(0)
   , m_sum_mc_weights(0)
+  , m_sum_pileup_weights(0)
   , m_cutFlow({{"Events", 0}, {"PassingPreselection", 0}})
 {
   // Here you put any code for the base initialization of variables,
@@ -95,7 +98,9 @@ EL::StatusCode JetCutStudies::createOutput()
   m_event_tree->Branch("jet_btag_tight", &m_jet_btag_tight);
   m_event_tree->Branch("jet_truth_tag",  &m_jet_truth_tag);
   m_event_tree->Branch("jet_JVT",        &m_jet_JVT);
+  m_event_tree->Branch("jet_eta_det",    &m_jet_eta_det);
   m_event_tree->Branch("event_weight",   &m_event_weight);
+  m_event_tree->Branch("pileup_weight",  &m_pileup_weight);
   return EL::StatusCode::SUCCESS;
 }
 
@@ -126,6 +131,10 @@ EL::StatusCode JetCutStudies::execute()
                    HgammaAnalysis::getGeneratorEfficiency(mcChannelNumber) *
                    HgammaAnalysis::getKFactor(mcChannelNumber) / sumOfWeights(mcChannelNumber);
 
+  // Get pileup weight
+  m_pileup_weight = eventHandler()->pileupWeight();
+  m_sum_pileup_weights += m_pileup_weight;
+
   // ___________________________________________________________________________________________
   // Fetch default jets
   xAOD::JetContainer jets_corrected = jetHandler()->getCorrectedContainer();
@@ -153,6 +162,9 @@ EL::StatusCode JetCutStudies::execute()
   }
   m_cutFlow["PassingPreselection"]++;
 
+  // ___________________________________________________________________________________________
+  // Decorate muon correction to jets
+  CommonTools::correctForMuons( yybbTool(), jets_selected, muons_corrected );
 
   // Clear vectors
   m_photon_pT.clear(); m_photon_eta.clear(); m_photon_phi.clear(); m_photon_E.clear();
@@ -176,29 +188,23 @@ EL::StatusCode JetCutStudies::execute()
     m_m_yy = yy_p4.M() / HG::GeV;
   }
 
-
-  // ___________________________________________________________________________________________
-  // Decorate muon correction to all jets and retrieve corrected jets
-  yybbTool()->decorateMuonCorrections(jets_selected, muons_corrected);
-  std::vector<TLorentzVector> jets_muon_corrected = yybbTool()->getMuonCorrJet4Vs(jets_selected);
-  if ( jets_selected.size() != jets_muon_corrected.size() ) { return StatusCode::FAILURE; }
-
   // Clear vectors
   m_jet_pT.clear(); m_jet_eta.clear(); m_jet_phi.clear(); m_jet_E.clear();
   m_jet_btag_loose.clear(); m_jet_btag_tight.clear(); m_jet_truth_tag.clear();
-  m_jet_JVT.clear();
+  m_jet_JVT.clear(); m_jet_eta_det.clear();
 
   // Fill jet information into tree
   m_jet_n = jets_selected.size();
-  for ( unsigned int idx_jet = 0; idx_jet < m_jet_n; ++idx_jet ) {
-    m_jet_pT.push_back( jets_muon_corrected.at(idx_jet).Pt() / HG::GeV );
-    m_jet_eta.push_back( jets_muon_corrected.at(idx_jet).Eta() );
-    m_jet_phi.push_back( jets_muon_corrected.at(idx_jet).Phi() );
-    m_jet_E.push_back( jets_muon_corrected.at(idx_jet).E() / HG::GeV );
-    m_jet_btag_loose.push_back( jets_selected.at(idx_jet)->auxdata<char>(m_2_tag_WP) );
-    m_jet_btag_tight.push_back( jets_selected.at(idx_jet)->auxdata<char>(m_1_tag_WP) );
-    m_jet_truth_tag.push_back( jets_selected.at(idx_jet)->auxdata<int>("HadronConeExclTruthLabelID") == 5 );
-    m_jet_JVT.push_back( jets_selected.at(idx_jet)->auxdata<float>("Jvt") );
+  for( const auto& jet : jets_selected ) {
+      m_jet_pT.push_back( jet->auxdata<double>("muon_pT") / HG::GeV );
+      m_jet_eta.push_back( jet->auxdata<double>("muon_eta") );
+      m_jet_phi.push_back( jet->auxdata<double>("muon_phi") );
+      m_jet_E.push_back( jet->auxdata<double>("muon_E") / HG::GeV );
+      m_jet_btag_loose.push_back( jet->auxdata<char>(m_2_tag_WP) );
+      m_jet_btag_tight.push_back( jet->auxdata<char>(m_1_tag_WP) );
+      m_jet_truth_tag.push_back( jet->auxdata<int>("HadronConeExclTruthLabelID") == 5 );
+      m_jet_JVT.push_back( jet->auxdata<float>("Jvt") );
+      m_jet_eta_det.push_back( jet->getAttribute<xAOD::JetFourMom_t>("JetConstitScaleMomentum").eta() );
   }
 
   // Fill event-level tree
@@ -227,6 +233,7 @@ EL::StatusCode JetCutStudies::finalize() {
   if (sc != EL::StatusCode::SUCCESS) { return sc; }
 
   ATH_MSG_INFO("The sum of MC weights in this job for channel " << eventInfo()->mcChannelNumber() << " was " << m_sum_mc_weights << " from " << m_cutFlow["Events"]++ << " events.");
+  ATH_MSG_INFO("The sum of pileup weights in this job was " << m_sum_pileup_weights << " for " << m_cutFlow["Events"]++ << " events.");
   ATH_MSG_INFO(m_cutFlow["PassingPreselection"] << " of " << m_cutFlow["Events"] << " events (" << (m_cutFlow["Events"] > 0 ? 100 * m_cutFlow["PassingPreselection"] / m_cutFlow["Events"] : 0) << "%) passed the HGamma pre-selection.");
   return EL::StatusCode::SUCCESS;
 }
@@ -237,11 +244,11 @@ EL::StatusCode JetCutStudies::finalize() {
  */
 double JetCutStudies::sampleXS(int mcID) {
   // Use SM hh cross-section for resonances
-  if (mcID == 341173) { return 1e3 * this->getCrossSection(342620); } // X275->hh->yybb
-  if (mcID == 341004) { return 1e3 * this->getCrossSection(342620); } // X300->hh->yybb
-  if (mcID == 341174) { return 1e3 * this->getCrossSection(342620); } // X325->hh->yybb
-  if (mcID == 341175) { return 1e3 * this->getCrossSection(342620); } // X350->hh->yybb
-  if (mcID == 341176) { return 1e3 * this->getCrossSection(342620); } // X400->hh->yybb
+  if (mcID == 341173) { return 1e3 * 5.0/*this->getCrossSection(342620)*/; } // X275->hh->yybb
+  if (mcID == 341004) { return 1e3 * 5.0/*this->getCrossSection(342620)*/; } // X300->hh->yybb
+  if (mcID == 341174) { return 1e3 * 5.0/*this->getCrossSection(342620)*/; } // X325->hh->yybb
+  if (mcID == 341175) { return 1e3 * 5.0/*this->getCrossSection(342620)*/; } // X350->hh->yybb
+  if (mcID == 341176) { return 1e3 * 5.0/*this->getCrossSection(342620)*/; } // X400->hh->yybb
   return 1e3 * this->getCrossSection(mcID);
 }
 

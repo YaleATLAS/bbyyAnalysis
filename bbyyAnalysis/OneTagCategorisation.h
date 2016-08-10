@@ -18,20 +18,21 @@ private:
 
   /// Not user-configurable
   /// Output ntuples
-  TTree *m_correct_tree; //!
-  TTree *m_incorrect_tree; //!
-  TTree *m_event_tree; //!
+  // TTree *m_correct_tree; //!
+  // TTree *m_incorrect_tree; //!
+  TTree *m_event_tree_1tag; //!
+  TTree *m_event_tree_2tag; //!
 
-  /// Output discriminators
-  double m_m_jb; //!
-  double m_pT_jb; //!
-  double m_abs_eta_jb; //!
-  double m_Delta_eta_jb; //!
-  double m_Delta_phi_jb; //!
-  double m_pT_j; //!
-  double m_abs_eta_j; //!
-  int m_idx_by_mH; //!
-  int m_idx_by_pT; //!
+  // /// Output discriminators
+  // double m_m_jb; //!
+  // double m_pT_jb; //!
+  // double m_abs_eta_jb; //!
+  // double m_Delta_eta_jb; //!
+  // double m_Delta_phi_jb; //!
+  // double m_pT_j; //!
+  // double m_abs_eta_j; //!
+  // int m_idx_by_mH; //!
+  // int m_idx_by_pT; //!
 
   /// Output discriminator vectors
   std::vector<double> m_v_m_jb; //!
@@ -52,8 +53,14 @@ private:
   /// Cutflow counters
   std::map< std::string, unsigned int > m_cutFlow; //!
 
-  /// Get final-state b-quarks
-  ConstDataVector<xAOD::TruthParticleContainer> bQuarkHiggsDescendants( const xAOD::TruthParticleContainer *truthPtcls );
+  // /// Get final-state b-quarks
+  // ConstDataVector<xAOD::TruthParticleContainer> bQuarkHiggsDescendants( const xAOD::TruthParticleContainer *truthPtcls );
+
+  // /// Get final Higgs before bb decay
+  // const xAOD::TruthParticle* HbbBeforeDecay( const xAOD::TruthParticleContainer *truthPtcls ) const;
+
+  // /// Get jet pair which best matches to the Higgs 4-vector
+  // bool matchJetsToHiggs( xAOD::JetContainer jets, const xAOD::TruthParticle* higgs ) const;
 
   // /// Get final-state b-quarks
   // void matchQuarksToJets( ConstDataVector<xAOD::TruthParticleContainer> bQuarks, xAOD::JetContainer jets );
@@ -62,7 +69,8 @@ private:
   void decorateWithIndices( const xAOD::Jet& bjet, xAOD::JetContainer& nonbjets );
 
   /// Calculate quantities for output trees
-  void fillOutputTree( TTree* outputTree, const xAOD::Jet& bjet, const xAOD::Jet& otherjet );
+  // void fillOutputTree( TTree* outputTree, const xAOD::Jet& bjet, const xAOD::Jet& otherjet );
+  void appendToOutput( const bool& isCorrect, const xAOD::Jet& bjet, const xAOD::Jet& otherjet );
 
   /// Retrieve sum of MC weights
   double sampleXS( int mcID );
