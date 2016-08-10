@@ -9,6 +9,7 @@
 
 #include "bbyyAnalysis/OneTagCategorisation.h"
 #include "bbyyAnalysis/CommonTools.hpp"
+#include "HGamAnalysisFramework/TruthUtils.h"
 #include <AsgTools/MsgStream.h>
 #include <AsgTools/MsgStreamMacros.h>
 #include <boost/format.hpp>
@@ -150,22 +151,26 @@ EL::StatusCode OneTagCategorisation::execute()
                    HgammaAnalysis::getKFactor(mcChannelNumber) / CommonTools::sumOfWeights(mcChannelNumber);
 
   // ___________________________________________________________________________________________
-  // Fetch default jets
+  // Retrieve truth Higgs bosons
+  xAOD::TruthParticleContainer higgsBosons = truthHandler()->getHiggsBosons();
+
+  // ___________________________________________________________________________________________
+  // Retrieve default jets
   xAOD::JetContainer jets_corrected = jetHandler()->getCorrectedContainer();
   xAOD::JetContainer jets_selected  = jetHandler()->applySelection(jets_corrected);
 
   // ___________________________________________________________________________________________
-  // Fetch default photons
+  // Retrieve default photons
   xAOD::PhotonContainer photons_corrected = photonHandler()->getCorrectedContainer();
   xAOD::PhotonContainer photons_selected  = photonHandler()->applySelection(photons_corrected);
 
   // ___________________________________________________________________________________________
-  // Fetch default muons
+  // Retrieve default muons
   xAOD::MuonContainer muons_corrected = muonHandler()->getCorrectedContainer();
   xAOD::MuonContainer muons_selected  = muonHandler()->applySelection(muons_corrected);
 
   // ___________________________________________________________________________________________
-  // Fetch default electrons
+  // Retrieve default electrons
   xAOD::ElectronContainer electrons_corrected = electronHandler()->getCorrectedContainer();
   xAOD::ElectronContainer electrons_selected  = electronHandler()->applySelection(electrons_corrected);
 
@@ -181,15 +186,8 @@ EL::StatusCode OneTagCategorisation::execute()
   CommonTools::decorateMuonCorrection( yybbTool(), jets_selected, muons_corrected );
 
   // ___________________________________________________________________________________________
-  // Retrieve truth-particles and get final Higgs bosons before decay
-  const xAOD::TruthParticleContainer* truthPtcls = 0;
-  EL_CHECK("execute()", event()->retrieve(truthPtcls, "TruthParticles"));
-  const xAOD::TruthParticle* higgs = CommonTools::HbbBeforeDecay(truthPtcls);
-  bool isHiggsEvent(higgs != 0);
-
-  // ___________________________________________________________________________________________
-  // Perform matching to identify jet-quark pairs
-  CommonTools::matchJetsToHiggs( jets_selected, higgs );
+  // Perform matching between jet-pairs and Higgs
+  bool isHiggsEvent = CommonTools::decorateHiggsMatching( jets_selected, higgsBosons );
 
   // ___________________________________________________________________________________________
   // Construct b-jets container

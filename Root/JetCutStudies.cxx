@@ -9,6 +9,7 @@
 
 #include "bbyyAnalysis/JetCutStudies.h"
 #include "bbyyAnalysis/CommonTools.hpp"
+#include "HGamAnalysisFramework/TruthUtils.h"
 #include <AsgTools/MsgStream.h>
 #include <AsgTools/MsgStreamMacros.h>
 #include <boost/format.hpp>
@@ -126,33 +127,42 @@ EL::StatusCode JetCutStudies::execute()
   m_sum_mc_weights += eventHandler()->mcWeight();
   m_cutFlow["Events"]++;
 
-  // Get overall event weight, normalised to 1fb-1
-  unsigned int mcChannelNumber = eventInfo()->mcChannelNumber();
-  m_event_weight = eventHandler()->mcWeight() * CommonTools::sampleXS(mcChannelNumber, getCrossSection(mcChannelNumber)) *
-                   HgammaAnalysis::getGeneratorEfficiency(mcChannelNumber) *
-                   HgammaAnalysis::getKFactor(mcChannelNumber) / CommonTools::sumOfWeights(mcChannelNumber);
+  if (! isMC()) {
+    m_event_weight = 1;
+    m_pileup_weight = 1;
+  } else {
+    // Get overall event weight, normalised to 1fb-1
+    unsigned int mcChannelNumber = eventInfo()->mcChannelNumber();
+    m_event_weight = eventHandler()->mcWeight() * CommonTools::sampleXS(mcChannelNumber, getCrossSection(mcChannelNumber)) *
+                     HgammaAnalysis::getGeneratorEfficiency(mcChannelNumber) *
+                     HgammaAnalysis::getKFactor(mcChannelNumber) / CommonTools::sumOfWeights(mcChannelNumber);
 
-  // Get pileup weight
-  m_pileup_weight = eventHandler()->pileupWeight();
+    // Get pileup weight
+    m_pileup_weight = eventHandler()->pileupWeight();
+  }
   m_sum_pileup_weights += m_pileup_weight;
 
   // ___________________________________________________________________________________________
-  // Fetch default jets
+  // Retrieve truth Higgs bosons
+  xAOD::TruthParticleContainer higgsBosons = truthHandler()->getHiggsBosons();
+
+  // ___________________________________________________________________________________________
+  // Retrieve default jets
   xAOD::JetContainer jets_corrected = jetHandler()->getCorrectedContainer();
   xAOD::JetContainer jets_selected  = jetHandler()->applySelection(jets_corrected);
 
   // ___________________________________________________________________________________________
-  // Fetch default photons
+  // Retrieve default photons
   xAOD::PhotonContainer photons_corrected = photonHandler()->getCorrectedContainer();
   xAOD::PhotonContainer photons_selected  = photonHandler()->applySelection(photons_corrected);
 
   // ___________________________________________________________________________________________
-  // Fetch default muons
+  // Retrieve default muons
   xAOD::MuonContainer muons_corrected = muonHandler()->getCorrectedContainer();
   xAOD::MuonContainer muons_selected  = muonHandler()->applySelection(muons_corrected);
 
   // ___________________________________________________________________________________________
-  // Fetch default electrons
+  // Retrieve default electrons
   xAOD::ElectronContainer electrons_corrected = electronHandler()->getCorrectedContainer();
   xAOD::ElectronContainer electrons_selected  = electronHandler()->applySelection(electrons_corrected);
 
@@ -168,14 +178,8 @@ EL::StatusCode JetCutStudies::execute()
   CommonTools::decorateMuonCorrection( yybbTool(), jets_selected, muons_corrected );
 
   // ___________________________________________________________________________________________
-  // Retrieve truth-particles and get final Higgs bosons before decay
-  const xAOD::TruthParticleContainer* truthPtcls = 0;
-  EL_CHECK("execute()", event()->retrieve(truthPtcls, "TruthParticles"));
-  const xAOD::TruthParticle* higgs = CommonTools::HbbBeforeDecay(truthPtcls);
-
-  // ___________________________________________________________________________________________
-  // Perform matching to identify jet-quark pairs
-  CommonTools::matchJetsToHiggs( jets_selected, higgs );
+  // Perform matching between jet-pairs and Higgs
+  CommonTools::decorateHiggsMatching( jets_selected, higgsBosons );
 
   // Clear vectors
   m_photon_pT.clear(); m_photon_eta.clear(); m_photon_phi.clear(); m_photon_E.clear();
@@ -207,16 +211,16 @@ EL::StatusCode JetCutStudies::execute()
   // Fill jet information into tree
   m_jet_n = jets_selected.size();
   for( const auto& jet : jets_selected ) {
-      m_jet_pT.push_back( jet->auxdata<double>("muon_pT") / HG::GeV );
-      m_jet_eta.push_back( jet->auxdata<double>("muon_eta") );
-      m_jet_phi.push_back( jet->auxdata<double>("muon_phi") );
-      m_jet_E.push_back( jet->auxdata<double>("muon_E") / HG::GeV );
-      m_jet_btag_loose.push_back( jet->auxdata<char>(m_2_tag_WP) );
-      m_jet_btag_tight.push_back( jet->auxdata<char>(m_1_tag_WP) );
-      m_jet_truth_tag.push_back( jet->auxdata<int>("HadronConeExclTruthLabelID") == 5 );
-      m_jet_higgs_match.push_back( jet->auxdata<char>("HiggsMatched") );
-      m_jet_JVT.push_back( jet->auxdata<float>("Jvt") );
-      m_jet_eta_det.push_back( jet->getAttribute<xAOD::JetFourMom_t>("JetConstitScaleMomentum").eta() );
+    m_jet_pT.push_back( jet->auxdata<double>("muon_pT") / HG::GeV );
+    m_jet_eta.push_back( jet->auxdata<double>("muon_eta") );
+    m_jet_phi.push_back( jet->auxdata<double>("muon_phi") );
+    m_jet_E.push_back( jet->auxdata<double>("muon_E") / HG::GeV );
+    m_jet_btag_loose.push_back( jet->auxdata<char>(m_2_tag_WP) );
+    m_jet_btag_tight.push_back( jet->auxdata<char>(m_1_tag_WP) );
+    m_jet_truth_tag.push_back( jet->auxdata<int>("HadronConeExclTruthLabelID") == 5 );
+    m_jet_higgs_match.push_back( jet->auxdata<char>("HiggsMatched") );
+    m_jet_JVT.push_back( jet->auxdata<float>("Jvt") );
+    m_jet_eta_det.push_back( jet->getAttribute<xAOD::JetFourMom_t>("JetConstitScaleMomentum").eta() );
   }
 
   // Fill event-level tree
