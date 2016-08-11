@@ -150,6 +150,9 @@ EL::StatusCode OneTagCategorisation::execute()
                    HgammaAnalysis::getGeneratorEfficiency(mcChannelNumber) *
                    HgammaAnalysis::getKFactor(mcChannelNumber) / CommonTools::sumOfWeights(mcChannelNumber);
 
+  // Also add pileup weight
+  m_event_weight *= eventHandler()->pileupWeight();
+
   // ___________________________________________________________________________________________
   // Retrieve truth Higgs bosons
   xAOD::TruthParticleContainer higgsBosons = truthHandler()->getHiggsBosons();

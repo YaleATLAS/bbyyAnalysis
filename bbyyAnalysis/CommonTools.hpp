@@ -38,7 +38,7 @@ namespace CommonTools {
       acc_eta(*jets.at(idx)) = jets_muon_corrected.at(idx).Eta();
       acc_phi(*jets.at(idx)) = jets_muon_corrected.at(idx).Phi();
     }
-    ATH_MSG_INFO("Decorated " << jets.size() << " jets with information from " << muons.size() << " muons.");
+    ATH_MSG_DEBUG("Decorated " << jets.size() << " jets with information from " << muons.size() << " muons.");
   }
 
 
@@ -61,14 +61,14 @@ namespace CommonTools {
       }
       if (decayingToBB) { higgsBosonsDecayingToBB.push_back(higgsBoson); }
     }
-    ATH_MSG_INFO("Found " << higgsBosons.size() << " Higgses of which " << higgsBosonsDecayingToBB.size() << " decay to bb");
+    ATH_MSG_DEBUG("Found " << higgsBosons.size() << " Higgs bosons with " << higgsBosonsDecayingToBB.size() << " decaying to bb");
 
     // Return false if no Higgs are found decaying to bb
     if( higgsBosonsDecayingToBB.size() == 0 ) { return false; }
 
     // Construct the Higgs Lorentz vector
     TLorentzVector higgs_p4 = higgsBosonsDecayingToBB.at(0)->p4();
-    ATH_MSG_INFO("Matching " << jets.size() << " jets to a Higgs with: E = " << higgs_p4.E()/HG::GeV << ", pT = " << higgs_p4.Pt()/HG::GeV << ", eta = " << higgs_p4.Eta() << ", phi = " << higgs_p4.Phi());
+    ATH_MSG_DEBUG("Matching " << jets.size() << " jets to a Higgs with: E = " << higgs_p4.E()/HG::GeV << ", pT = " << higgs_p4.Pt()/HG::GeV << ", eta = " << higgs_p4.Eta() << ", phi = " << higgs_p4.Phi());
 
     // Initialise counters for current best pairing
     int matched_j1(-1), matched_j2(-1);
@@ -80,7 +80,7 @@ namespace CommonTools {
         // Compare DeltaR wrt the Higgs with the best one found so far
         TLorentzVector jj_p4 = p4(*jets.at(idx_j1)) + p4(*jets.at(idx_j2));
         const double deltaR( higgs_p4.DeltaR(jj_p4) );
-        ATH_MSG_INFO("  ..... jet pair with 4-vector of E = " << jj_p4.E()/HG::GeV << ", pT = " << jj_p4.Pt()/HG::GeV << ", eta = " << jj_p4.Eta() << ", phi = " << jj_p4.Phi() << " has DeltaR wrt Higgs of " << deltaR);
+        ATH_MSG_DEBUG("  .... jet pair with 4-vector of E = " << jj_p4.E()/HG::GeV << ", pT = " << jj_p4.Pt()/HG::GeV << ", eta = " << jj_p4.Eta() << ", phi = " << jj_p4.Phi() << " has DeltaR wrt Higgs of " << deltaR);
         if( deltaR < matched_deltaR ) {
           matched_deltaR = deltaR;
           matched_j1 = idx_j1;
@@ -90,13 +90,13 @@ namespace CommonTools {
     }
 
     if( matched_deltaR < 0.5 ) { // 0.6 is 82% efficient; 0.5 is 79% efficient; 0.4 is 47% efficient
-      ATH_MSG_INFO( "=> tagging best matched jets: DeltaR = " << matched_deltaR);
+      ATH_MSG_DEBUG( "=> tagging best matched jets: DeltaR = " << matched_deltaR);
       accHiggsMatched(*jets.at(matched_j1)) = true;
       accHiggsMatched(*jets.at(matched_j2)) = true;
       return true;
     }
 
-    ATH_MSG_INFO( "=> no jet-pair candidate had a DeltaR of less than 0.4! Best was " << matched_deltaR);
+    ATH_MSG_DEBUG( "=> no jet-pair candidate had a DeltaR of less than 0.4! Best was " << matched_deltaR);
     return false;
   }
 
