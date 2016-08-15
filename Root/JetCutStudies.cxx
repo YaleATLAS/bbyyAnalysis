@@ -133,7 +133,8 @@ EL::StatusCode JetCutStudies::execute()
   } else {
     // Get overall event weight, normalised to 1fb-1
     unsigned int mcChannelNumber = eventInfo()->mcChannelNumber();
-    m_event_weight = eventHandler()->mcWeight() * CommonTools::sampleXS(mcChannelNumber, getCrossSection(mcChannelNumber)) *
+    m_event_weight = eventHandler()->mcWeight() * CommonTools::luminosity_invfb() *
+                     CommonTools::xs_fb(mcChannelNumber, getCrossSection(mcChannelNumber), false) *
                      HgammaAnalysis::getGeneratorEfficiency(mcChannelNumber) *
                      HgammaAnalysis::getKFactor(mcChannelNumber) / CommonTools::sumOfWeights(mcChannelNumber);
 

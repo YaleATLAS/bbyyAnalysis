@@ -9,6 +9,14 @@ using namespace asg::msgUserCode;
 
 namespace CommonTools {
   /**
+   * Expected luminosity for Moriond 2017
+   * @return double
+   */
+  inline double luminosity_invfb() {
+    return 40.0;
+  }
+
+  /**
    * Construct muon-corrected TLorentzVector
    * @return TLorentzVector of muon-corrected kinematics
    */
@@ -104,15 +112,16 @@ namespace CommonTools {
    * Return the sample cross-section
    * @return sample cross-section in fb
    */
-  inline double sampleXS(const int& mcID, const double& default_pb) {
+  inline double xs_fb(const int& mcID, const double& default_pb, const bool& scaleBSM = false) {
     // Use Moriond 2016 limits
-    if (mcID == 341173) { return 1e3 * 5.0 /*7.0*/; } // X275->hh->yybb
-    if (mcID == 341004) { return 1e3 * 5.0 /*6.1*/; } // X300->hh->yybb
-    if (mcID == 341174) { return 1e3 * 5.0 /*5.6*/; } // X325->hh->yybb
-    if (mcID == 341175) { return 1e3 * 5.0 /*5.1*/; } // X350->hh->yybb
-    if (mcID == 341176) { return 1e3 * 5.0 /*4.0*/; } // X400->hh->yybb
-    if (mcID == 342620) { return 1e3 * 5.0 /*5.4*/; } // SM NLO hh->yybb
-    return 1e3 * default_pb;
+    double xs_fb = 1e3 * default_pb;
+    if (mcID == 341173) { xs_fb = 5.0 * (scaleBSM ? 0.2 : 1.0) /*7.0*/; } // X275->hh->yybb
+    if (mcID == 341004) { xs_fb = 5.0 * (scaleBSM ? 0.2 : 1.0) /*6.1*/; } // X300->hh->yybb
+    if (mcID == 341174) { xs_fb = 5.0 * (scaleBSM ? 0.2 : 1.0) /*5.6*/; } // X325->hh->yybb
+    if (mcID == 341175) { xs_fb = 5.0 * (scaleBSM ? 0.2 : 1.0) /*5.1*/; } // X350->hh->yybb
+    if (mcID == 341176) { xs_fb = 5.0 * (scaleBSM ? 0.2 : 1.0) /*4.0*/; } // X400->hh->yybb
+    if (mcID == 342620) { xs_fb = 5.0 /*5.4*/; } // SM NLO hh->yybb
+    return xs_fb; //sherpa default_pb is 4.0127E+001
   }
 
   /**
