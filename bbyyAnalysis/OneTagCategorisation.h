@@ -22,15 +22,15 @@ private:
   TTree *m_event_tree_2tag; //!
 
   /// Output discriminator vectors
-  std::vector<double> m_v_m_jb; //!
-  std::vector<double> m_v_pT_jb; //!
+  std::vector<double> m_v_abs_eta_j; //!
   std::vector<double> m_v_abs_eta_jb; //!
   std::vector<double> m_v_Delta_eta_jb; //!
   std::vector<double> m_v_Delta_phi_jb; //!
-  std::vector<double> m_v_pT_j; //!
-  std::vector<double> m_v_abs_eta_j; //!
   std::vector<int> m_v_idx_by_mH; //!
   std::vector<double> m_v_idx_by_pT; //!
+  std::vector<double> m_v_m_jb; //!
+  std::vector<double> m_v_pT_j; //!
+  std::vector<double> m_v_pT_jb; //!
   std::vector<double> m_v_isCorrect; //!
 
   /// Event weights
@@ -40,11 +40,10 @@ private:
   /// Cutflow counters
   std::map< std::string, unsigned int > m_cutFlow; //!
 
-  /// Decorate with pT and mH indices
-  void decorateWithIndices( const xAOD::Jet& bjet, xAOD::JetContainer& nonbjets );
+  // /// Decorate with pT and mH indices
+  // void decorateWithIndices( const xAOD::Jet& bjet, xAOD::JetContainer& nonbjets );
 
   /// Calculate quantities for output trees
-  // void fillOutputTree( TTree* outputTree, const xAOD::Jet& bjet, const xAOD::Jet& otherjet );
   void appendToOutput( const bool& isCorrect, const xAOD::Jet& bjet, const xAOD::Jet& otherjet );
 
 

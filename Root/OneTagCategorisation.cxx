@@ -22,15 +22,15 @@ OneTagCategorisation::OneTagCategorisation(const char *name)
   , m_2_tag_WP("")
   , m_event_tree_1tag(0)
   , m_event_tree_2tag(0)
-  , m_v_m_jb(0)
-  , m_v_pT_jb(0)
+  , m_v_abs_eta_j(0)
   , m_v_abs_eta_jb(0)
   , m_v_Delta_eta_jb(0)
   , m_v_Delta_phi_jb(0)
-  , m_v_pT_j(0)
-  , m_v_abs_eta_j(0)
   , m_v_idx_by_mH(0)
   , m_v_idx_by_pT(0)
+  , m_v_m_jb(0)
+  , m_v_pT_j(0)
+  , m_v_pT_jb(0)
   , m_v_isCorrect(0)
   , m_event_weight(0)
   , m_sum_mc_weights(0)
@@ -218,7 +218,7 @@ EL::StatusCode OneTagCategorisation::execute()
     m_cutFlow["is1tag"]++;
 
     // Decorate non-b-jets with their order in pT or distance from mH
-    decorateWithIndices(*jets_passing_1tag_WP.at(0), jets_failing_1tag_WP);
+    CommonTools::decorateWithIndices(*jets_passing_1tag_WP.at(0), jets_failing_1tag_WP);
     bool passesHiggsMatched(false), passesHadronConeExclTruthLabelID(false);
 
     // Case (A): this is a Higgs event
@@ -260,7 +260,7 @@ EL::StatusCode OneTagCategorisation::execute()
 
     // Set indices to 1 in both cases
     xAOD::JetContainer second_bjet(SG::VIEW_ELEMENTS); second_bjet.push_back(jets_passing_2tag_WP.at(1));
-    decorateWithIndices(*jets_passing_2tag_WP.at(0), second_bjet);
+    CommonTools::decorateWithIndices(*jets_passing_2tag_WP.at(0), second_bjet);
 
     // If both are matched then this is the correct pair
     if( jets_passing_2tag_WP.at(0)->auxdata<char>("HiggsMatched") && jets_passing_2tag_WP.at(1)->auxdata<char>("HiggsMatched") ) {
@@ -308,25 +308,25 @@ EL::StatusCode OneTagCategorisation::finalize() {
 }
 
 
-/**
- * Create histogram output: inherited from EL::Algorithm
- * @return an EL::StatusCode indicating success/failure
- */
-void OneTagCategorisation::decorateWithIndices(const xAOD::Jet& bjet, xAOD::JetContainer& nonbjets) {
-  // Calculate m_jb
-  SG::AuxElement::Accessor<double> accMjb("m_jb");
-  for (auto jet : nonbjets) { accMjb(*jet) = (CommonTools::p4(bjet) + CommonTools::p4(*jet)).M() / HG::GeV; }
-
-  // Sort by distance from mH and add index
-  std::sort(nonbjets.begin(), nonbjets.end(), [](const xAOD::Jet *i, const xAOD::Jet *j) { return fabs(i->auxdata<double>("m_jb") - 125.09) < fabs(j->auxdata<double>("m_jb") - 125.09); });
-  SG::AuxElement::Accessor<int> accIdxByMh("idx_by_mH");
-  for (unsigned int idx = 0; idx < nonbjets.size(); ++idx) { accIdxByMh(*nonbjets.at(idx)) = idx; }
-
-  // Sort by pT and add index
-  std::sort(nonbjets.begin(), nonbjets.end(), [](const xAOD::Jet *i, const xAOD::Jet *j) { return i->pt() > j->pt(); });
-  SG::AuxElement::Accessor<int> accIdxByPt("idx_by_pT");
-  for (unsigned int idx = 0; idx < nonbjets.size(); ++idx) { accIdxByPt(*nonbjets.at(idx)) = idx; }
-}
+// /**
+//  * Create histogram output: inherited from EL::Algorithm
+//  * @return an EL::StatusCode indicating success/failure
+//  */
+// void OneTagCategorisation::decorateWithIndices(const xAOD::Jet& bjet, xAOD::JetContainer& nonbjets) {
+//   // Calculate m_jb
+//   SG::AuxElement::Accessor<double> accMjb("m_jb");
+//   for (auto jet : nonbjets) { accMjb(*jet) = (CommonTools::p4(bjet) + CommonTools::p4(*jet)).M() / HG::GeV; }
+//
+//   // Sort by distance from mH and add index
+//   std::sort(nonbjets.begin(), nonbjets.end(), [](const xAOD::Jet *i, const xAOD::Jet *j) { return fabs(i->auxdata<double>("m_jb") - 125.09) < fabs(j->auxdata<double>("m_jb") - 125.09); });
+//   SG::AuxElement::Accessor<int> accIdxByMh("idx_by_mH");
+//   for (unsigned int idx = 0; idx < nonbjets.size(); ++idx) { accIdxByMh(*nonbjets.at(idx)) = idx; }
+//
+//   // Sort by pT and add index
+//   std::sort(nonbjets.begin(), nonbjets.end(), [](const xAOD::Jet *i, const xAOD::Jet *j) { return i->pt() > j->pt(); });
+//   SG::AuxElement::Accessor<int> accIdxByPt("idx_by_pT");
+//   for (unsigned int idx = 0; idx < nonbjets.size(); ++idx) { accIdxByPt(*nonbjets.at(idx)) = idx; }
+// }
 
 
 /**
@@ -338,15 +338,15 @@ void OneTagCategorisation::appendToOutput( const bool& isCorrect, const xAOD::Je
   TLorentzVector b_p4(CommonTools::p4(bjet)), j_p4(CommonTools::p4(otherjet));
   TLorentzVector jb_p4 = b_p4 + j_p4;
   // Append to vectors for event-level quantities
-  m_v_m_jb.push_back( jb_p4.M() / HG::GeV );
-  m_v_pT_jb.push_back( jb_p4.Pt() / HG::GeV );
+  m_v_abs_eta_j.push_back( fabs(j_p4.Eta()) );
   m_v_abs_eta_jb.push_back( fabs(jb_p4.Eta()) );
   m_v_Delta_eta_jb.push_back( fabs(b_p4.Eta() - j_p4.Eta()) );
   m_v_Delta_phi_jb.push_back( fabs(b_p4.DeltaPhi(j_p4)) );
   m_v_idx_by_mH.push_back( otherjet.auxdata<int>("idx_by_mH") );
   m_v_idx_by_pT.push_back( otherjet.auxdata<int>("idx_by_pT") );
+  m_v_m_jb.push_back( jb_p4.M() / HG::GeV );
   m_v_pT_j.push_back( j_p4.Pt() / HG::GeV );
-  m_v_abs_eta_j.push_back( fabs(j_p4.Eta()) );
+  m_v_pT_jb.push_back( jb_p4.Pt() / HG::GeV );
   m_v_isCorrect.push_back( isCorrect );
 }
 

@@ -1,5 +1,6 @@
 #pragma once
 #include "HGamAnalysisFramework/HgammaAnalysis.h"
+#include <TMVA/Reader.h>
 #include <map>
 #include <vector>
 
@@ -20,6 +21,19 @@ private:
   /// Output ntuples
   TTree *m_event_tree; //!
 
+  /// TMVA reader from scikit-learn XML output
+  TMVA::Reader m_reader; //!
+  /// TMVA discriminators
+  float m_abs_eta_j; //!
+  float m_abs_eta_jb; //!
+  float m_Delta_eta_jb; //!
+  float m_Delta_phi_jb; //!
+  float m_idx_by_mH; //!
+  float m_idx_by_pT; //!
+  float m_m_jb; //!
+  float m_pT_j; //!
+  float m_pT_jb; //!
+
   /// Output variables
   double m_m_yy; //!
   unsigned int m_photon_n, m_jet_n; //!
@@ -33,6 +47,7 @@ private:
   std::vector<bool> m_jet_truth_tag; //!
   std::vector<bool> m_jet_higgs_match; //!
   std::vector<double> m_jet_JVT; //!
+  std::vector<double> m_jet_ML_classifier; //!
 
   /// Event weights
   double m_event_weight, m_pileup_weight; //!
@@ -41,6 +56,8 @@ private:
   /// Cutflow counters
   std::map< std::string, unsigned int > m_cutFlow; //!
 
+
+  void decorateWithClassifier( const xAOD::Jet& bjet, xAOD::JetContainer& nonbjets );
 
 public:
   // this is a standard constructor

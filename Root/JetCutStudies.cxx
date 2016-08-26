@@ -22,6 +22,16 @@ JetCutStudies::JetCutStudies(const char *name)
   , m_1_tag_WP("")
   , m_2_tag_WP("")
   , m_event_tree(0)
+  , m_reader()
+  , m_abs_eta_j(0)
+  , m_abs_eta_jb(0)
+  , m_Delta_eta_jb(0)
+  , m_Delta_phi_jb(0)
+  , m_idx_by_mH(0)
+  , m_idx_by_pT(0)
+  , m_m_jb(0)
+  , m_pT_j(0)
+  , m_pT_jb(0)
   , m_event_weight(0)
   , m_pileup_weight(0)
   , m_sum_mc_weights(0)
@@ -43,6 +53,7 @@ JetCutStudies::JetCutStudies(const char *name)
 JetCutStudies::~JetCutStudies()
 {
   // Here you delete any memory you allocated during your analysis.
+  // if (m_reader) { delete m_reader; }
 }
 
 /**
@@ -53,10 +64,22 @@ EL::StatusCode JetCutStudies::initialize()
 {
   ATH_MSG_INFO("Initialising...");
   const auto sc = HgammaAnalysis::initialize();
-
   if (sc != EL::StatusCode::SUCCESS) { return sc; }
 
+  // Setup TMVA reader
+  ATH_MSG_INFO("Initialising TMVA reader");
+  m_reader.AddVariable("abs_eta_j",    &m_abs_eta_j);
+  m_reader.AddVariable("abs_eta_jb",   &m_abs_eta_jb);
+  m_reader.AddVariable("Delta_eta_jb", &m_Delta_eta_jb);
+  m_reader.AddVariable("idx_by_mH",    &m_idx_by_mH);
+  m_reader.AddVariable("idx_by_pT",    &m_idx_by_pT);
+  m_reader.AddVariable("m_jb",         &m_m_jb);
+  m_reader.AddVariable("pT_j",         &m_pT_j);
+  m_reader.AddVariable("pT_jb",        &m_pT_jb);
+  m_reader.BookMVA("OneTagClassifier", PathResolverFindCalibFile("bbyyAnalysis/skl_BDT_TMVA.weights.xml"));
+
   // Retrieve b-tagging working point
+  ATH_MSG_INFO("Reading in values from config files...");
   m_1_tag_WP = config()->getStr("JetCutStudies.1tag.OperatingPoint", "MV2c10_FixedCutBEff_60");
   m_2_tag_WP = config()->getStr("JetCutStudies.2tag.OperatingPoint", "MV2c10_FixedCutBEff_85");
 
@@ -83,26 +106,27 @@ EL::StatusCode JetCutStudies::createOutput()
   // Add event tree to output file
   m_event_tree = new TTree("events", "events");
   m_event_tree->SetDirectory(file);
-  m_event_tree->Branch("photon_n",        &m_photon_n);
-  m_event_tree->Branch("photon_pT",       &m_photon_pT);
-  m_event_tree->Branch("photon_eta",      &m_photon_eta);
-  m_event_tree->Branch("photon_phi",      &m_photon_phi);
-  m_event_tree->Branch("photon_E",        &m_photon_E);
-  m_event_tree->Branch("photon_isTight",  &m_photon_isTight);
-  m_event_tree->Branch("m_yy",            &m_m_yy);
-  m_event_tree->Branch("jet_n",           &m_jet_n);
-  m_event_tree->Branch("jet_pT",          &m_jet_pT);
-  m_event_tree->Branch("jet_eta",         &m_jet_eta);
-  m_event_tree->Branch("jet_phi",         &m_jet_phi);
-  m_event_tree->Branch("jet_E",           &m_jet_E);
-  m_event_tree->Branch("jet_btag_loose",  &m_jet_btag_loose);
-  m_event_tree->Branch("jet_btag_tight",  &m_jet_btag_tight);
-  m_event_tree->Branch("jet_truth_tag",   &m_jet_truth_tag);
-  m_event_tree->Branch("jet_higgs_match", &m_jet_higgs_match);
-  m_event_tree->Branch("jet_JVT",         &m_jet_JVT);
-  m_event_tree->Branch("jet_eta_det",     &m_jet_eta_det);
-  m_event_tree->Branch("event_weight",    &m_event_weight);
-  m_event_tree->Branch("pileup_weight",   &m_pileup_weight);
+  m_event_tree->Branch("photon_n",          &m_photon_n);
+  m_event_tree->Branch("photon_pT",         &m_photon_pT);
+  m_event_tree->Branch("photon_eta",        &m_photon_eta);
+  m_event_tree->Branch("photon_phi",        &m_photon_phi);
+  m_event_tree->Branch("photon_E",          &m_photon_E);
+  m_event_tree->Branch("photon_isTight",    &m_photon_isTight);
+  m_event_tree->Branch("m_yy",              &m_m_yy);
+  m_event_tree->Branch("jet_n",             &m_jet_n);
+  m_event_tree->Branch("jet_pT",            &m_jet_pT);
+  m_event_tree->Branch("jet_eta",           &m_jet_eta);
+  m_event_tree->Branch("jet_phi",           &m_jet_phi);
+  m_event_tree->Branch("jet_E",             &m_jet_E);
+  m_event_tree->Branch("jet_btag_loose",    &m_jet_btag_loose);
+  m_event_tree->Branch("jet_btag_tight",    &m_jet_btag_tight);
+  m_event_tree->Branch("jet_truth_tag",     &m_jet_truth_tag);
+  m_event_tree->Branch("jet_higgs_match",   &m_jet_higgs_match);
+  m_event_tree->Branch("jet_JVT",           &m_jet_JVT);
+  m_event_tree->Branch("jet_eta_det",       &m_jet_eta_det);
+  m_event_tree->Branch("jet_ML_classifier", &m_jet_ML_classifier);
+  m_event_tree->Branch("event_weight",      &m_event_weight);
+  m_event_tree->Branch("pileup_weight",     &m_pileup_weight);
   return EL::StatusCode::SUCCESS;
 }
 
@@ -127,8 +151,8 @@ EL::StatusCode JetCutStudies::execute()
   m_sum_mc_weights += eventHandler()->mcWeight();
   m_cutFlow["Events"]++;
 
-  if (! isMC()) {
-    m_event_weight = 1;
+  if (!isMC()) {
+    m_event_weight = CommonTools::luminosity_invfb() / 12.171;
     m_pileup_weight = 1;
   } else {
     // Get overall event weight, normalised to 1fb-1
@@ -145,7 +169,8 @@ EL::StatusCode JetCutStudies::execute()
 
   // ___________________________________________________________________________________________
   // Retrieve truth Higgs bosons
-  xAOD::TruthParticleContainer higgsBosons = truthHandler()->getHiggsBosons();
+  xAOD::TruthParticleContainer higgsBosons(SG::VIEW_ELEMENTS);
+  if (isMC()) { higgsBosons = truthHandler()->getHiggsBosons(); }
 
   // ___________________________________________________________________________________________
   // Retrieve default jets
@@ -207,7 +232,27 @@ EL::StatusCode JetCutStudies::execute()
   // Clear vectors
   m_jet_pT.clear(); m_jet_eta.clear(); m_jet_phi.clear(); m_jet_E.clear();
   m_jet_btag_loose.clear(); m_jet_btag_tight.clear(); m_jet_truth_tag.clear();
-  m_jet_higgs_match.clear(); m_jet_JVT.clear(); m_jet_eta_det.clear();
+  m_jet_higgs_match.clear(); m_jet_JVT.clear(); m_jet_eta_det.clear(); m_jet_ML_classifier.clear();
+
+  // ___________________________________________________________________________________________
+  // Construct b-jet containers
+  xAOD::JetContainer jets_passing_2tag_WP(SG::VIEW_ELEMENTS);
+  xAOD::JetContainer jets_passing_1tag_WP(SG::VIEW_ELEMENTS);
+  xAOD::JetContainer jets_failing_1tag_WP(SG::VIEW_ELEMENTS);
+
+  // Initialise 1-tag classifier to false and fill b-jet containers
+  SG::AuxElement::Accessor<double> accOneTagClassifier("OneTagClassifier");
+  for (auto jet : jets_selected) {
+    accOneTagClassifier(*jet) = -99;
+    if (jet->auxdata<char>(m_2_tag_WP)) { jets_passing_2tag_WP.push_back(jet); }
+    if (jet->auxdata<char>(m_1_tag_WP)) { jets_passing_1tag_WP.push_back(jet); }
+    else { jets_failing_1tag_WP.push_back(jet); }
+  }
+
+  // Decorate only 1-tag events with classifier
+  if (jets_passing_2tag_WP.size() < 2 && jets_passing_1tag_WP.size() == 1) {
+    decorateWithClassifier(*jets_passing_1tag_WP.at(0), jets_failing_1tag_WP);
+  }
 
   // Fill jet information into tree
   m_jet_n = jets_selected.size();
@@ -221,13 +266,45 @@ EL::StatusCode JetCutStudies::execute()
     m_jet_truth_tag.push_back( jet->auxdata<int>("HadronConeExclTruthLabelID") == 5 );
     m_jet_higgs_match.push_back( jet->auxdata<char>("HiggsMatched") );
     m_jet_JVT.push_back( jet->auxdata<float>("Jvt") );
-    m_jet_eta_det.push_back( jet->getAttribute<xAOD::JetFourMom_t>("JetConstitScaleMomentum").eta() );
+    m_jet_ML_classifier.push_back( jet->auxdata<double>("OneTagClassifier") );
+    if(isMAOD()) {
+      m_jet_eta_det.push_back( jet->auxdata<float>("DetectorEta") );
+    } else {
+      m_jet_eta_det.push_back( jet->getAttribute<xAOD::JetFourMom_t>("JetConstitScaleMomentum").eta() );
+    }
+    ATH_MSG_DEBUG("... found jet with classifier value: " << jet->auxdata<double>("OneTagClassifier") << " and HiggsMatched: " << (jet->auxdata<char>("HiggsMatched") ? "YES" : "NO"));
   }
 
   // Fill event-level tree
   m_event_tree->Fill();
 
   return EL::StatusCode::SUCCESS;
+}
+
+/**
+ * Add jet pairing to event-level vectors
+ * @return nothing
+ */
+// void JetCutStudies::decorateWithClassifier( const xAOD::Jet& bjet, const xAOD::Jet& otherjet ) {
+void JetCutStudies::decorateWithClassifier( const xAOD::Jet& bjet, xAOD::JetContainer& nonbjets ) {
+  // Add idx_by_mH and idx_by_pT decorations
+  CommonTools::decorateWithIndices(bjet, nonbjets);
+  for (auto otherjet : nonbjets) {
+    // Construct jb 4-vector
+    TLorentzVector b_p4(CommonTools::p4(bjet)), j_p4(CommonTools::p4(*otherjet));
+    TLorentzVector jb_p4 = b_p4 + j_p4;
+    // Append to vectors for event-level quantities
+    m_abs_eta_j = fabs(j_p4.Eta());
+    m_abs_eta_jb = fabs(jb_p4.Eta());
+    m_Delta_eta_jb = fabs(b_p4.Eta() - j_p4.Eta());
+    m_Delta_phi_jb = fabs(b_p4.DeltaPhi(j_p4));
+    m_idx_by_mH = otherjet->auxdata<int>("idx_by_mH");
+    m_idx_by_pT = otherjet->auxdata<int>("idx_by_pT");
+    m_m_jb = jb_p4.M() / HG::GeV;
+    m_pT_j = j_p4.Pt() / HG::GeV;
+    m_pT_jb = jb_p4.Pt() / HG::GeV;
+    otherjet->auxdata<double>("OneTagClassifier") = m_reader.EvaluateMVA("OneTagClassifier");
+  }
 }
 
 /**

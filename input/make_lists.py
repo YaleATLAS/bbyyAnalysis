@@ -3,13 +3,15 @@ import glob
 import re
 import subprocess
 
-patterns = { "data15_h010":"eos:h010a/data_25ns/.*period.*", "mc15":"eos:h010a/mc_25ns/.*hh_yybb.*", "mc15_bkg":"eos:h010a/mc_25ns/MGPy8_y[bjy][bj][bj].*", "mc15_singleHiggs":"eos:h010a/mc_25ns/.*125\..*", }
+#patterns = { "data15_h010":"eos:h010a/data_25ns/.*period.*", "mc15":"eos:h010a/mc_25ns/.*hh_yybb.*", "mc15_bkg":"eos:h010a/mc_25ns/MGPy8_y[bjy][bj][bj].*", "mc15_singleHiggs":"eos:h010a/mc_25ns/.*125\..*", }
+patterns = { "data16_h013":"eos:h013/data16/.*period.*" }
 
 for list_pattern, dataset_pattern in sorted( patterns.items() ) :
   print "Working on",list_pattern
-  list_name = glob.glob( "{0}*list".format(list_pattern) )[0]
-  if "eos" in dataset_pattern :
+  list_name = glob.glob( "{0}*list".format(list_pattern.replace("_h","_MxAOD_h")) )[0]
+  if "eos" in dataset_pattern:
     folder = "/".join( dataset_pattern.split(":")[1].split("/")[:-1] )+"/"
+    print folder
     file_pattern = dataset_pattern.split(":")[1].split("/")[-1]
     if len(file_pattern) == 0 : file_pattern = "."
     all_files = subprocess.Popen( [ "/afs/cern.ch/project/eos/installation/0.3.84-aquamarine/bin/eos.select", "ls", "root://eosatlas.cern.ch//eos/atlas/atlascerngroupdisk/phys-higgs/HSG1/MxAOD/{0}".format(folder) ], stdout=subprocess.PIPE).communicate()[0]

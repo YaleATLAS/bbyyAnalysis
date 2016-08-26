@@ -52,7 +52,7 @@ namespace CommonTools {
 
 
   /**
-   * Decorate jet pair with closest DeltaR match to an identifies Higgs to bb decay
+   * Decorate jet pair with closest DeltaR match to an identified Higgs to bb decay
    * @return addition of "HiggsMatched" decoration
    */
   inline bool decorateHiggsMatching( xAOD::JetContainer& jets, xAOD::TruthParticleContainer& higgsBosons ) {
@@ -106,6 +106,27 @@ namespace CommonTools {
 
     ATH_MSG_DEBUG( "=> no jet-pair candidate had a DeltaR of less than 0.4! Best was " << matched_deltaR);
     return false;
+  }
+
+
+  /**
+   * Decorate non-b-jets with their order in pT or distance from mH
+   * @return addition of "m_jb", "idx_by_mH" and "idx_by_pT" decorations
+   */
+  inline void decorateWithIndices(const xAOD::Jet& bjet, xAOD::JetContainer& nonbjets) {
+    // Calculate m_jb
+    SG::AuxElement::Accessor<double> accMjb("m_jb");
+    for (auto jet : nonbjets) { accMjb(*jet) = (CommonTools::p4(bjet) + CommonTools::p4(*jet)).M() / HG::GeV; }
+
+    // Sort by distance from mH and add index
+    std::sort(nonbjets.begin(), nonbjets.end(), [](const xAOD::Jet *i, const xAOD::Jet *j) { return fabs(i->auxdata<double>("m_jb") - 125.09) < fabs(j->auxdata<double>("m_jb") - 125.09); });
+    SG::AuxElement::Accessor<int> accIdxByMh("idx_by_mH");
+    for (unsigned int idx = 0; idx < nonbjets.size(); ++idx) { accIdxByMh(*nonbjets.at(idx)) = idx; }
+
+    // Sort by pT and add index
+    std::sort(nonbjets.begin(), nonbjets.end(), [](const xAOD::Jet *i, const xAOD::Jet *j) { return i->pt() > j->pt(); });
+    SG::AuxElement::Accessor<int> accIdxByPt("idx_by_pT");
+    for (unsigned int idx = 0; idx < nonbjets.size(); ++idx) { accIdxByPt(*nonbjets.at(idx)) = idx; }
   }
 
   /**
