@@ -28,6 +28,7 @@ JetCutStudies::JetCutStudies(const char *name)
   , m_Delta_eta_jb(0)
   , m_Delta_phi_jb(0)
   , m_idx_by_mH(0)
+  , m_idx_by_m_jb(0)
   , m_idx_by_pT(0)
   , m_m_jb(0)
   , m_pT_j(0)
@@ -72,6 +73,7 @@ EL::StatusCode JetCutStudies::initialize()
   m_reader.AddVariable("abs_eta_jb",   &m_abs_eta_jb);
   m_reader.AddVariable("Delta_eta_jb", &m_Delta_eta_jb);
   m_reader.AddVariable("idx_by_mH",    &m_idx_by_mH);
+  m_reader.AddVariable("idx_by_m_jb",  &m_idx_by_m_jb);
   m_reader.AddVariable("idx_by_pT",    &m_idx_by_pT);
   m_reader.AddVariable("m_jb",         &m_m_jb);
   m_reader.AddVariable("pT_j",         &m_pT_j);
@@ -299,6 +301,7 @@ void JetCutStudies::decorateWithClassifier( const xAOD::Jet& bjet, xAOD::JetCont
     m_Delta_eta_jb = fabs(b_p4.Eta() - j_p4.Eta());
     m_Delta_phi_jb = fabs(b_p4.DeltaPhi(j_p4));
     m_idx_by_mH = otherjet->auxdata<int>("idx_by_mH");
+    m_idx_by_m_jb = otherjet->auxdata<int>("idx_by_m_jb");
     m_idx_by_pT = otherjet->auxdata<int>("idx_by_pT");
     m_m_jb = jb_p4.M() / HG::GeV;
     m_pT_j = j_p4.Pt() / HG::GeV;

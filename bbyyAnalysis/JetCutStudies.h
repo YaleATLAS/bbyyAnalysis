@@ -29,6 +29,7 @@ private:
   float m_Delta_eta_jb; //!
   float m_Delta_phi_jb; //!
   float m_idx_by_mH; //!
+  float m_idx_by_m_jb; //!
   float m_idx_by_pT; //!
   float m_m_jb; //!
   float m_pT_j; //!

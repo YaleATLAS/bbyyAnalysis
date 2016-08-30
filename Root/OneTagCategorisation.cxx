@@ -27,6 +27,7 @@ OneTagCategorisation::OneTagCategorisation(const char *name)
   , m_v_Delta_eta_jb(0)
   , m_v_Delta_phi_jb(0)
   , m_v_idx_by_mH(0)
+  , m_v_idx_by_m_jb(0)
   , m_v_idx_by_pT(0)
   , m_v_m_jb(0)
   , m_v_pT_j(0)
@@ -96,6 +97,7 @@ EL::StatusCode OneTagCategorisation::createOutput()
   m_event_tree_1tag->Branch("Delta_eta_jb", &m_v_Delta_eta_jb);
   m_event_tree_1tag->Branch("Delta_phi_jb", &m_v_Delta_phi_jb);
   m_event_tree_1tag->Branch("idx_by_mH",    &m_v_idx_by_mH);
+  m_event_tree_1tag->Branch("idx_by_m_jb",  &m_v_idx_by_m_jb);
   m_event_tree_1tag->Branch("idx_by_pT",    &m_v_idx_by_pT);
   m_event_tree_1tag->Branch("m_jb",         &m_v_m_jb);
   m_event_tree_1tag->Branch("pT_j",         &m_v_pT_j);
@@ -111,6 +113,7 @@ EL::StatusCode OneTagCategorisation::createOutput()
   m_event_tree_2tag->Branch("Delta_eta_jb", &m_v_Delta_eta_jb);
   m_event_tree_2tag->Branch("Delta_phi_jb", &m_v_Delta_phi_jb);
   m_event_tree_2tag->Branch("idx_by_mH",    &m_v_idx_by_mH);
+  m_event_tree_2tag->Branch("idx_by_m_jb",  &m_v_idx_by_m_jb);
   m_event_tree_2tag->Branch("idx_by_pT",    &m_v_idx_by_pT);
   m_event_tree_2tag->Branch("m_jb",         &m_v_m_jb);
   m_event_tree_2tag->Branch("pT_j",         &m_v_pT_j);
@@ -130,9 +133,10 @@ EL::StatusCode OneTagCategorisation::execute()
   // events, e.g. read input variables, apply cuts, and fill
   // histograms and trees.  This is where most of your actual analysis
   // code will go.
-  m_v_m_jb.clear(); m_v_pT_jb.clear(); m_v_abs_eta_jb.clear();
-  m_v_Delta_eta_jb.clear(); m_v_Delta_phi_jb.clear(); m_v_pT_j.clear();
-  m_v_abs_eta_j.clear(); m_v_idx_by_mH.clear(); m_v_idx_by_pT.clear();
+  m_v_abs_eta_j.clear(); m_v_abs_eta_jb.clear();
+  m_v_Delta_eta_jb.clear(); m_v_Delta_phi_jb.clear();
+  m_v_idx_by_mH.clear(); m_v_idx_by_m_jb.clear(); m_v_idx_by_pT.clear();
+  m_v_m_jb.clear(); m_v_pT_j.clear(); m_v_pT_jb.clear();
   m_v_isCorrect.clear();
 
   // Important to keep this, so that internal tools / event variables
@@ -308,92 +312,24 @@ EL::StatusCode OneTagCategorisation::finalize() {
 }
 
 
-// /**
-//  * Create histogram output: inherited from EL::Algorithm
-//  * @return an EL::StatusCode indicating success/failure
-//  */
-// void OneTagCategorisation::decorateWithIndices(const xAOD::Jet& bjet, xAOD::JetContainer& nonbjets) {
-//   // Calculate m_jb
-//   SG::AuxElement::Accessor<double> accMjb("m_jb");
-//   for (auto jet : nonbjets) { accMjb(*jet) = (CommonTools::p4(bjet) + CommonTools::p4(*jet)).M() / HG::GeV; }
-//
-//   // Sort by distance from mH and add index
-//   std::sort(nonbjets.begin(), nonbjets.end(), [](const xAOD::Jet *i, const xAOD::Jet *j) { return fabs(i->auxdata<double>("m_jb") - 125.09) < fabs(j->auxdata<double>("m_jb") - 125.09); });
-//   SG::AuxElement::Accessor<int> accIdxByMh("idx_by_mH");
-//   for (unsigned int idx = 0; idx < nonbjets.size(); ++idx) { accIdxByMh(*nonbjets.at(idx)) = idx; }
-//
-//   // Sort by pT and add index
-//   std::sort(nonbjets.begin(), nonbjets.end(), [](const xAOD::Jet *i, const xAOD::Jet *j) { return i->pt() > j->pt(); });
-//   SG::AuxElement::Accessor<int> accIdxByPt("idx_by_pT");
-//   for (unsigned int idx = 0; idx < nonbjets.size(); ++idx) { accIdxByPt(*nonbjets.at(idx)) = idx; }
-// }
-
-
 /**
- * Add jet pairing to event-level vectors
+ * Add jet pairing information to event-level vectors
  * @return nothing
  */
 void OneTagCategorisation::appendToOutput( const bool& isCorrect, const xAOD::Jet& bjet, const xAOD::Jet& otherjet ) {
   // Construct jb 4-vector
   TLorentzVector b_p4(CommonTools::p4(bjet)), j_p4(CommonTools::p4(otherjet));
   TLorentzVector jb_p4 = b_p4 + j_p4;
-  // Append to vectors for event-level quantities
+  // Append to vectors of event-level quantities
   m_v_abs_eta_j.push_back( fabs(j_p4.Eta()) );
   m_v_abs_eta_jb.push_back( fabs(jb_p4.Eta()) );
   m_v_Delta_eta_jb.push_back( fabs(b_p4.Eta() - j_p4.Eta()) );
   m_v_Delta_phi_jb.push_back( fabs(b_p4.DeltaPhi(j_p4)) );
   m_v_idx_by_mH.push_back( otherjet.auxdata<int>("idx_by_mH") );
+  m_v_idx_by_m_jb.push_back( otherjet.auxdata<int>("idx_by_m_jb") );
   m_v_idx_by_pT.push_back( otherjet.auxdata<int>("idx_by_pT") );
   m_v_m_jb.push_back( jb_p4.M() / HG::GeV );
   m_v_pT_j.push_back( j_p4.Pt() / HG::GeV );
   m_v_pT_jb.push_back( jb_p4.Pt() / HG::GeV );
   m_v_isCorrect.push_back( isCorrect );
 }
-
-
-
-
-// /**
-//  * Create histogram output: inherited from EL::Algorithm
-//  * @return an EL::StatusCode indicating success/failure
-//  */
-// void OneTagCategorisation::matchQuarksToJets(ConstDataVector<xAOD::TruthParticleContainer>bQuarks, xAOD::JetContainer jets) {
-//   ATH_MSG_DEBUG("Matching between " << bQuarks.size() << " quarks and " << jets.size() << " jets");
-//
-//   // Initialise 2D-array of dR distances
-//   std::vector<std::vector<double> > deltaRjq(jets.size() + 1, std::vector<double>(bQuarks.size() + 1, 99));
-//   SG::AuxElement::Accessor<char>    accHiggsMatched("HiggsMatched");
-//
-//   // Get deltaR for each pair
-//   for (unsigned int idx_j = 0; idx_j < jets.size(); ++idx_j) {
-//     for (unsigned int idx_q = 0; idx_q < bQuarks.size(); ++idx_q) {
-//       deltaRjq.at(idx_j).at(idx_q) = HG::DR(jets.at(idx_j), bQuarks.at(idx_q));
-//       deltaRjq.at(idx_j).back()    = std::min(deltaRjq.at(idx_j).at(idx_q), deltaRjq.at(idx_j).back());
-//       deltaRjq.back().at(idx_q)    = std::min(deltaRjq.at(idx_j).at(idx_q), deltaRjq.back().at(idx_q));
-//     }
-//   }
-//
-//   // Find all jet-quark pairs that are closer to each other than either is to
-//   // anything else
-//   for (unsigned int idx_j = 0; idx_j < jets.size(); ++idx_j) {
-//     // If there are no quarks then no jets can be matched
-//     if (bQuarks.size() < 1) { accHiggsMatched(*jets.at(idx_j)) = false; continue; }
-//
-//     // Otherwise find the closest quark to each jet...
-//     unsigned int closest_quark_to_jet(-1);
-//
-//     for (unsigned int idx_q = 0; idx_q < bQuarks.size(); ++idx_q) {
-//       if (deltaRjq.at(idx_j).at(idx_q) == deltaRjq.at(idx_j).back()) { closest_quark_to_jet = idx_q; break; }
-//     }
-//     ATH_MSG_DEBUG("... for jet " << idx_j << " the closest quark is " << closest_quark_to_jet);
-//
-//     // ... and check that this is also the closest jet to that quark
-//     if (deltaRjq.at(idx_j).at(closest_quark_to_jet) == deltaRjq.back().at(closest_quark_to_jet)) {
-//       ATH_MSG_DEBUG("... this is also the closest jet to that quark -> match found");
-//       accHiggsMatched(*jets.at(idx_j)) = true;
-//     } else {
-//       ATH_MSG_DEBUG("... but this is not the closest jet to that quark -> no match");
-//       accHiggsMatched(*jets.at(idx_j)) = false;
-//     }
-//   }
-// }

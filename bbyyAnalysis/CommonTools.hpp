@@ -118,14 +118,19 @@ namespace CommonTools {
     SG::AuxElement::Accessor<double> accMjb("m_jb");
     for (auto jet : nonbjets) { accMjb(*jet) = (CommonTools::p4(bjet) + CommonTools::p4(*jet)).M() / HG::GeV; }
 
+    // Sort by m_jb and add index
+    SG::AuxElement::Accessor<int> accIdxByMjb("idx_by_m_jb");
+    std::sort(nonbjets.begin(), nonbjets.end(), [](const xAOD::Jet *i, const xAOD::Jet *j) { return i->auxdata<double>("m_jb") > j->auxdata<double>("m_jb"); });
+    for (unsigned int idx = 0; idx < nonbjets.size(); ++idx) { accIdxByMjb(*nonbjets.at(idx)) = idx; }
+
     // Sort by distance from mH and add index
-    std::sort(nonbjets.begin(), nonbjets.end(), [](const xAOD::Jet *i, const xAOD::Jet *j) { return fabs(i->auxdata<double>("m_jb") - 125.09) < fabs(j->auxdata<double>("m_jb") - 125.09); });
     SG::AuxElement::Accessor<int> accIdxByMh("idx_by_mH");
+    std::sort(nonbjets.begin(), nonbjets.end(), [](const xAOD::Jet *i, const xAOD::Jet *j) { return fabs(i->auxdata<double>("m_jb") - 125.09) < fabs(j->auxdata<double>("m_jb") - 125.09); });
     for (unsigned int idx = 0; idx < nonbjets.size(); ++idx) { accIdxByMh(*nonbjets.at(idx)) = idx; }
 
     // Sort by pT and add index
-    std::sort(nonbjets.begin(), nonbjets.end(), [](const xAOD::Jet *i, const xAOD::Jet *j) { return i->pt() > j->pt(); });
     SG::AuxElement::Accessor<int> accIdxByPt("idx_by_pT");
+    std::sort(nonbjets.begin(), nonbjets.end(), [](const xAOD::Jet *i, const xAOD::Jet *j) { return i->pt() > j->pt(); });
     for (unsigned int idx = 0; idx < nonbjets.size(); ++idx) { accIdxByPt(*nonbjets.at(idx)) = idx; }
   }
 

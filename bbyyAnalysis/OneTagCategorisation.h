@@ -27,7 +27,8 @@ private:
   std::vector<double> m_v_Delta_eta_jb; //!
   std::vector<double> m_v_Delta_phi_jb; //!
   std::vector<int> m_v_idx_by_mH; //!
-  std::vector<double> m_v_idx_by_pT; //!
+  std::vector<int> m_v_idx_by_m_jb; //!
+  std::vector<int> m_v_idx_by_pT; //!
   std::vector<double> m_v_m_jb; //!
   std::vector<double> m_v_pT_j; //!
   std::vector<double> m_v_pT_jb; //!
