@@ -27,8 +27,8 @@ OneTagCategorisation::OneTagCategorisation(const char *name)
   , m_v_Delta_eta_jb(0)
   , m_v_Delta_phi_jb(0)
   , m_v_idx_by_mH(0)
-  , m_v_idx_by_m_jb(0)
   , m_v_idx_by_pT(0)
+  , m_v_idx_by_pT_jb(0)
   , m_v_m_jb(0)
   , m_v_pT_j(0)
   , m_v_pT_jb(0)
@@ -67,7 +67,7 @@ EL::StatusCode OneTagCategorisation::initialize()
 
   // Retrieve b-tagging working point
   m_1_tag_WP = config()->getStr("OneTagCategorisation.1tag.OperatingPoint", "MV2c10_FixedCutBEff_60");
-  m_2_tag_WP = config()->getStr("OneTagCategorisation.2tag.OperatingPoint", "MV2c10_FixedCutBEff_85");
+  m_2_tag_WP = config()->getStr("OneTagCategorisation.2tag.OperatingPoint", "MV2c10_FixedCutBEff_77");
 
   return EL::StatusCode::SUCCESS;
 }
@@ -97,8 +97,8 @@ EL::StatusCode OneTagCategorisation::createOutput()
   m_event_tree_1tag->Branch("Delta_eta_jb", &m_v_Delta_eta_jb);
   m_event_tree_1tag->Branch("Delta_phi_jb", &m_v_Delta_phi_jb);
   m_event_tree_1tag->Branch("idx_by_mH",    &m_v_idx_by_mH);
-  m_event_tree_1tag->Branch("idx_by_m_jb",  &m_v_idx_by_m_jb);
   m_event_tree_1tag->Branch("idx_by_pT",    &m_v_idx_by_pT);
+  m_event_tree_1tag->Branch("idx_by_pT_jb", &m_v_idx_by_pT_jb);
   m_event_tree_1tag->Branch("m_jb",         &m_v_m_jb);
   m_event_tree_1tag->Branch("pT_j",         &m_v_pT_j);
   m_event_tree_1tag->Branch("pT_jb",        &m_v_pT_jb);
@@ -113,8 +113,8 @@ EL::StatusCode OneTagCategorisation::createOutput()
   m_event_tree_2tag->Branch("Delta_eta_jb", &m_v_Delta_eta_jb);
   m_event_tree_2tag->Branch("Delta_phi_jb", &m_v_Delta_phi_jb);
   m_event_tree_2tag->Branch("idx_by_mH",    &m_v_idx_by_mH);
-  m_event_tree_2tag->Branch("idx_by_m_jb",  &m_v_idx_by_m_jb);
   m_event_tree_2tag->Branch("idx_by_pT",    &m_v_idx_by_pT);
+  m_event_tree_2tag->Branch("idx_by_pT_jb", &m_v_idx_by_pT_jb);
   m_event_tree_2tag->Branch("m_jb",         &m_v_m_jb);
   m_event_tree_2tag->Branch("pT_j",         &m_v_pT_j);
   m_event_tree_2tag->Branch("pT_jb",        &m_v_pT_jb);
@@ -135,7 +135,7 @@ EL::StatusCode OneTagCategorisation::execute()
   // code will go.
   m_v_abs_eta_j.clear(); m_v_abs_eta_jb.clear();
   m_v_Delta_eta_jb.clear(); m_v_Delta_phi_jb.clear();
-  m_v_idx_by_mH.clear(); m_v_idx_by_m_jb.clear(); m_v_idx_by_pT.clear();
+  m_v_idx_by_mH.clear(); m_v_idx_by_pT.clear(); m_v_idx_by_pT_jb.clear();
   m_v_m_jb.clear(); m_v_pT_j.clear(); m_v_pT_jb.clear();
   m_v_isCorrect.clear();
 
@@ -326,8 +326,8 @@ void OneTagCategorisation::appendToOutput( const bool& isCorrect, const xAOD::Je
   m_v_Delta_eta_jb.push_back( fabs(b_p4.Eta() - j_p4.Eta()) );
   m_v_Delta_phi_jb.push_back( fabs(b_p4.DeltaPhi(j_p4)) );
   m_v_idx_by_mH.push_back( otherjet.auxdata<int>("idx_by_mH") );
-  m_v_idx_by_m_jb.push_back( otherjet.auxdata<int>("idx_by_m_jb") );
   m_v_idx_by_pT.push_back( otherjet.auxdata<int>("idx_by_pT") );
+  m_v_idx_by_pT_jb.push_back( otherjet.auxdata<int>("idx_by_pT_jb") );
   m_v_m_jb.push_back( jb_p4.M() / HG::GeV );
   m_v_pT_j.push_back( j_p4.Pt() / HG::GeV );
   m_v_pT_jb.push_back( jb_p4.Pt() / HG::GeV );

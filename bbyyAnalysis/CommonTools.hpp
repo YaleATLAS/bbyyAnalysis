@@ -114,14 +114,19 @@ namespace CommonTools {
    * @return addition of "m_jb", "idx_by_mH" and "idx_by_pT" decorations
    */
   inline void decorateWithIndices(const xAOD::Jet& bjet, xAOD::JetContainer& nonbjets) {
-    // Calculate m_jb
+    // Calculate m_jb and pT_jb
     SG::AuxElement::Accessor<double> accMjb("m_jb");
-    for (auto jet : nonbjets) { accMjb(*jet) = (CommonTools::p4(bjet) + CommonTools::p4(*jet)).M() / HG::GeV; }
+    SG::AuxElement::Accessor<double> accpTjb("pT_jb");
+    for (auto jet : nonbjets) {
+      TLorentzVector jb_p4 = CommonTools::p4(bjet) + CommonTools::p4(*jet);
+      accMjb(*jet) = jb_p4.M() / HG::GeV;
+      accpTjb(*jet) = jb_p4.Pt() / HG::GeV;
+    }
 
-    // Sort by m_jb and add index
-    SG::AuxElement::Accessor<int> accIdxByMjb("idx_by_m_jb");
-    std::sort(nonbjets.begin(), nonbjets.end(), [](const xAOD::Jet *i, const xAOD::Jet *j) { return i->auxdata<double>("m_jb") > j->auxdata<double>("m_jb"); });
-    for (unsigned int idx = 0; idx < nonbjets.size(); ++idx) { accIdxByMjb(*nonbjets.at(idx)) = idx; }
+    // Sort by pT_jb and add index
+    SG::AuxElement::Accessor<int> accIdxBypTjb("idx_by_pT_jb");
+    std::sort(nonbjets.begin(), nonbjets.end(), [](const xAOD::Jet *i, const xAOD::Jet *j) { return i->auxdata<double>("pT_jb") > j->auxdata<double>("pT_jb"); });
+    for (unsigned int idx = 0; idx < nonbjets.size(); ++idx) { accIdxBypTjb(*nonbjets.at(idx)) = idx; }
 
     // Sort by distance from mH and add index
     SG::AuxElement::Accessor<int> accIdxByMh("idx_by_mH");
@@ -141,12 +146,12 @@ namespace CommonTools {
   inline double xs_fb(const int& mcID, const double& default_pb, const bool& scaleBSM = false) {
     // Use Moriond 2016 limits
     double xs_fb = 1e3 * default_pb;
-    if (mcID == 341173) { xs_fb = 5.0 * (scaleBSM ? 0.2 : 1.0) /*7.0*/; } // X275->hh->yybb
-    if (mcID == 341004) { xs_fb = 5.0 * (scaleBSM ? 0.2 : 1.0) /*6.1*/; } // X300->hh->yybb
-    if (mcID == 341174) { xs_fb = 5.0 * (scaleBSM ? 0.2 : 1.0) /*5.6*/; } // X325->hh->yybb
-    if (mcID == 341175) { xs_fb = 5.0 * (scaleBSM ? 0.2 : 1.0) /*5.1*/; } // X350->hh->yybb
-    if (mcID == 341176) { xs_fb = 5.0 * (scaleBSM ? 0.2 : 1.0) /*4.0*/; } // X400->hh->yybb
-    if (mcID == 342620) { xs_fb = 5.0 /*5.4*/; } // SM NLO hh->yybb
+    if (mcID == 341173) { xs_fb = 12.89 * (scaleBSM ? 0.2 : 1.0); } // X275->hh->yybb
+    if (mcID == 341004) { xs_fb = 12.89 * (scaleBSM ? 0.2 : 1.0); } // X300->hh->yybb
+    if (mcID == 341174) { xs_fb = 12.89 * (scaleBSM ? 0.2 : 1.0); } // X325->hh->yybb
+    if (mcID == 341175) { xs_fb = 12.89 * (scaleBSM ? 0.2 : 1.0); } // X350->hh->yybb
+    if (mcID == 341176) { xs_fb = 12.89 * (scaleBSM ? 0.2 : 1.0); } // X400->hh->yybb
+    if (mcID == 342620) { xs_fb = 12.89; } // SM NLO hh->yybb
     return xs_fb; //sherpa default_pb is 4.0127E+001
   }
 
