@@ -97,7 +97,7 @@ namespace CommonTools {
       }
     }
 
-    if( matched_deltaR < 0.5 ) { // 0.6 is 82% efficient; 0.5 is 79% efficient; 0.4 is 47% efficient
+    if( matched_deltaR < 0.6 ) {
       ATH_MSG_DEBUG( "=> tagging best matched jets: DeltaR = " << matched_deltaR);
       accHiggsMatched(*jets.at(matched_j1)) = true;
       accHiggsMatched(*jets.at(matched_j2)) = true;

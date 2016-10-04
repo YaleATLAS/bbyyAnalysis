@@ -67,7 +67,7 @@ EL::StatusCode OneTagCategorisation::initialize()
 
   // Retrieve b-tagging working point
   m_1_tag_WP = config()->getStr("OneTagCategorisation.1tag.OperatingPoint", "MV2c10_FixedCutBEff_60");
-  m_2_tag_WP = config()->getStr("OneTagCategorisation.2tag.OperatingPoint", "MV2c10_FixedCutBEff_77");
+  m_2_tag_WP = config()->getStr("OneTagCategorisation.2tag.OperatingPoint", "MV2c10_FixedCutBEff_70");
 
   return EL::StatusCode::SUCCESS;
 }
