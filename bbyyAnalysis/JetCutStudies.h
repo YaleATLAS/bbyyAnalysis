@@ -22,7 +22,8 @@ private:
   TTree *m_event_tree; //!
 
   /// TMVA reader from scikit-learn XML output
-  TMVA::Reader m_reader; //!
+  TMVA::Reader m_reader_low_mass, m_reader_high_mass; //!
+  TMVA::Reader m_reader_low_mass_without_booleans, m_reader_high_mass_without_booleans; //!
   /// TMVA discriminators
   float m_abs_eta_j; //!
   float m_abs_eta_jb; //!
@@ -30,6 +31,8 @@ private:
   float m_idx_by_mH; //!
   float m_idx_by_pT; //!
   float m_idx_by_pT_jb; //!
+  float m_passes_WP77; //!
+  float m_passes_WP85; //!
   float m_m_jb; //!
   float m_pT_j; //!
   float m_pT_jb; //!
@@ -42,15 +45,19 @@ private:
   std::vector<double> m_photon_phi, m_jet_phi; //!
   std::vector<double> m_photon_E, m_jet_E; //!
   std::vector<bool> m_photon_isTight; //!
-  std::vector<bool> m_jet_btag_loose; //!
-  std::vector<bool> m_jet_btag_tight; //!
+  std::vector<bool> m_jet_btag_1tag; //!
+  std::vector<bool> m_jet_btag_2tag; //!
+  std::vector<bool> m_jet_btag_85; //!
+  std::vector<double> m_jet_classifier_low_mass; //!
+  std::vector<double> m_jet_classifier_high_mass; //!
+  std::vector<double> m_jet_classifier_low_mass_without_booleans; //!
+  std::vector<double> m_jet_classifier_high_mass_without_booleans; //!
   std::vector<bool> m_jet_truth_tag; //!
   std::vector<bool> m_jet_higgs_match; //!
-  std::vector<double> m_jet_JVT; //!
-  std::vector<double> m_jet_ML_classifier; //!
+  std::vector<double> m_jet_m_jb; //!
 
   /// Event weights
-  double m_event_weight, m_pileup_weight; //!
+  double m_event_weight; //!
   double m_sum_mc_weights, m_sum_pileup_weights; //!
 
   /// Cutflow counters

@@ -30,6 +30,8 @@ OneTagCategorisation::OneTagCategorisation(const char *name)
   , m_v_idx_by_pT(0)
   , m_v_idx_by_pT_jb(0)
   , m_v_m_jb(0)
+  , m_v_passes_WP77(0)
+  , m_v_passes_WP85(0)
   , m_v_pT_j(0)
   , m_v_pT_jb(0)
   , m_v_isCorrect(0)
@@ -100,6 +102,8 @@ EL::StatusCode OneTagCategorisation::createOutput()
   m_event_tree_1tag->Branch("idx_by_pT",    &m_v_idx_by_pT);
   m_event_tree_1tag->Branch("idx_by_pT_jb", &m_v_idx_by_pT_jb);
   m_event_tree_1tag->Branch("m_jb",         &m_v_m_jb);
+  m_event_tree_1tag->Branch("passes_WP77",  &m_v_passes_WP77);
+  m_event_tree_1tag->Branch("passes_WP85",  &m_v_passes_WP85);
   m_event_tree_1tag->Branch("pT_j",         &m_v_pT_j);
   m_event_tree_1tag->Branch("pT_jb",        &m_v_pT_jb);
   m_event_tree_1tag->Branch("isCorrect",    &m_v_isCorrect);
@@ -116,6 +120,8 @@ EL::StatusCode OneTagCategorisation::createOutput()
   m_event_tree_2tag->Branch("idx_by_pT",    &m_v_idx_by_pT);
   m_event_tree_2tag->Branch("idx_by_pT_jb", &m_v_idx_by_pT_jb);
   m_event_tree_2tag->Branch("m_jb",         &m_v_m_jb);
+  m_event_tree_2tag->Branch("passes_WP77",  &m_v_passes_WP77);
+  m_event_tree_2tag->Branch("passes_WP85",  &m_v_passes_WP85);
   m_event_tree_2tag->Branch("pT_j",         &m_v_pT_j);
   m_event_tree_2tag->Branch("pT_jb",        &m_v_pT_jb);
   m_event_tree_2tag->Branch("isCorrect",    &m_v_isCorrect);
@@ -136,8 +142,8 @@ EL::StatusCode OneTagCategorisation::execute()
   m_v_abs_eta_j.clear(); m_v_abs_eta_jb.clear();
   m_v_Delta_eta_jb.clear(); m_v_Delta_phi_jb.clear();
   m_v_idx_by_mH.clear(); m_v_idx_by_pT.clear(); m_v_idx_by_pT_jb.clear();
-  m_v_m_jb.clear(); m_v_pT_j.clear(); m_v_pT_jb.clear();
-  m_v_isCorrect.clear();
+  m_v_m_jb.clear(); m_v_passes_WP77.clear(); m_v_passes_WP85.clear();
+  m_v_pT_j.clear(); m_v_pT_jb.clear(); m_v_isCorrect.clear();
 
   // Important to keep this, so that internal tools / event variables
   // are filled properly.
@@ -155,8 +161,8 @@ EL::StatusCode OneTagCategorisation::execute()
                    HgammaAnalysis::getGeneratorEfficiency(mcChannelNumber) *
                    HgammaAnalysis::getKFactor(mcChannelNumber) / CommonTools::sumOfWeights(mcChannelNumber);
 
-  // Also add pileup weight
-  m_event_weight *= eventHandler()->pileupWeight();
+  // Also add pileup and vertex weight
+  m_event_weight *= eventHandler()->pileupWeight() * eventHandler()->vertexWeight();
 
   // ___________________________________________________________________________________________
   // Retrieve truth Higgs bosons
@@ -329,6 +335,8 @@ void OneTagCategorisation::appendToOutput( const bool& isCorrect, const xAOD::Je
   m_v_idx_by_pT.push_back( otherjet.auxdata<int>("idx_by_pT") );
   m_v_idx_by_pT_jb.push_back( otherjet.auxdata<int>("idx_by_pT_jb") );
   m_v_m_jb.push_back( jb_p4.M() / HG::GeV );
+  m_v_passes_WP77.push_back( (otherjet.auxdata<char>("MV2c10_FixedCutBEff_77") ? 1 : 0) );
+  m_v_passes_WP85.push_back( (otherjet.auxdata<char>("MV2c10_FixedCutBEff_85") ? 1 : 0));
   m_v_pT_j.push_back( j_p4.Pt() / HG::GeV );
   m_v_pT_jb.push_back( jb_p4.Pt() / HG::GeV );
   m_v_isCorrect.push_back( isCorrect );

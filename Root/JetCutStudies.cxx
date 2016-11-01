@@ -22,7 +22,10 @@ JetCutStudies::JetCutStudies(const char *name)
   , m_1_tag_WP("")
   , m_2_tag_WP("")
   , m_event_tree(0)
-  , m_reader()
+  , m_reader_low_mass()
+  , m_reader_high_mass()
+  , m_reader_low_mass_without_booleans()
+  , m_reader_high_mass_without_booleans()
   , m_abs_eta_j(0)
   , m_abs_eta_jb(0)
   , m_Delta_eta_jb(0)
@@ -33,7 +36,6 @@ JetCutStudies::JetCutStudies(const char *name)
   , m_pT_j(0)
   , m_pT_jb(0)
   , m_event_weight(0)
-  , m_pileup_weight(0)
   , m_sum_mc_weights(0)
   , m_sum_pileup_weights(0)
   , m_cutFlow({{"Events", 0}, {"PassingPreselection", 0}})
@@ -53,7 +55,7 @@ JetCutStudies::JetCutStudies(const char *name)
 JetCutStudies::~JetCutStudies()
 {
   // Here you delete any memory you allocated during your analysis.
-  // if (m_reader) { delete m_reader; }
+  // if (m_reader_low_mass) { delete m_reader_low_mass; }
 }
 
 /**
@@ -66,24 +68,66 @@ EL::StatusCode JetCutStudies::initialize()
   const auto sc = HgammaAnalysis::initialize();
   if (sc != EL::StatusCode::SUCCESS) { return sc; }
 
-  // Setup TMVA reader
-  ATH_MSG_INFO("Initialising TMVA reader");
-  m_reader.AddVariable("abs_eta_j",    &m_abs_eta_j);
-  m_reader.AddVariable("abs_eta_jb",   &m_abs_eta_jb);
-  m_reader.AddVariable("Delta_eta_jb", &m_Delta_eta_jb);
-  m_reader.AddVariable("idx_by_mH",    &m_idx_by_mH);
-  m_reader.AddVariable("idx_by_pT",    &m_idx_by_pT);
-  m_reader.AddVariable("idx_by_pT_jb", &m_idx_by_pT_jb);
-  m_reader.AddVariable("m_jb",         &m_m_jb);
-  m_reader.AddVariable("pT_j",         &m_pT_j);
-  m_reader.AddVariable("pT_jb",        &m_pT_jb);
-  m_reader.BookMVA("OneTagClassifier", PathResolverFindCalibFile("bbyyAnalysis/skl_BDT_TMVA.weights.xml"));
-  // m_reader.BookMVA("OneTagClassifier", PathResolverFindCalibFile("bbyyAnalysis/root_BDT_TMVA.weights.xml"));
+  ATH_MSG_INFO("Reading configuration...");
 
   // Retrieve b-tagging working point
-  ATH_MSG_INFO("Reading in values from config files...");
   m_1_tag_WP = config()->getStr("JetCutStudies.1tag.OperatingPoint", "MV2c10_FixedCutBEff_60");
-  m_2_tag_WP = config()->getStr("JetCutStudies.2tag.OperatingPoint", "MV2c10_FixedCutBEff_85");
+  ATH_MSG_INFO("1-tag operating point......................... " << m_1_tag_WP );
+  m_2_tag_WP = config()->getStr("JetCutStudies.2tag.OperatingPoint", "MV2c10_FixedCutBEff_70");
+  ATH_MSG_INFO("2-tag operating point......................... " << m_2_tag_WP );
+
+  // Setup TMVA readers
+  ATH_MSG_INFO("Initialising TMVA reader: low mass");
+  m_reader_low_mass.AddVariable("abs_eta_j",    &m_abs_eta_j);
+  m_reader_low_mass.AddVariable("abs_eta_jb",   &m_abs_eta_jb);
+  m_reader_low_mass.AddVariable("Delta_eta_jb", &m_Delta_eta_jb);
+  m_reader_low_mass.AddVariable("idx_by_mH",    &m_idx_by_mH);
+  m_reader_low_mass.AddVariable("idx_by_pT",    &m_idx_by_pT);
+  m_reader_low_mass.AddVariable("idx_by_pT_jb", &m_idx_by_pT_jb);
+  m_reader_low_mass.AddVariable("m_jb",         &m_m_jb);
+  m_reader_low_mass.AddVariable("passes_WP77",  &m_passes_WP77);
+  m_reader_low_mass.AddVariable("passes_WP85",  &m_passes_WP85);
+  m_reader_low_mass.AddVariable("pT_j",         &m_pT_j);
+  m_reader_low_mass.AddVariable("pT_jb",        &m_pT_jb);
+  m_reader_low_mass.BookMVA("OneTagClassifier_low_mass", PathResolverFindCalibFile("bbyyAnalysis/MVA_config_hh2yybb_low_mass_with_booleans.xml") );
+
+  ATH_MSG_INFO("Initialising TMVA reader: high mass");
+  m_reader_high_mass.AddVariable("abs_eta_j",      &m_abs_eta_j);
+  m_reader_high_mass.AddVariable("abs_eta_jb",     &m_abs_eta_jb);
+  m_reader_high_mass.AddVariable("Delta_eta_jb",   &m_Delta_eta_jb);
+  m_reader_high_mass.AddVariable("idx_by_mH",      &m_idx_by_mH);
+  m_reader_high_mass.AddVariable("idx_by_pT",      &m_idx_by_pT);
+  m_reader_high_mass.AddVariable("idx_by_pT_jb",   &m_idx_by_pT_jb);
+  m_reader_high_mass.AddVariable("m_jb",           &m_m_jb);
+  m_reader_high_mass.AddVariable("passes_WP77",  &m_passes_WP77);
+  m_reader_high_mass.AddVariable("passes_WP85",  &m_passes_WP85);
+  m_reader_high_mass.AddVariable("pT_j",           &m_pT_j);
+  m_reader_high_mass.AddVariable("pT_jb",          &m_pT_jb);
+  m_reader_high_mass.BookMVA("OneTagClassifier_high_mass", PathResolverFindCalibFile("bbyyAnalysis/MVA_config_hh2yybb_high_mass_with_booleans.xml") );
+
+  ATH_MSG_INFO("Initialising TMVA reader: low mass [without booleans]");
+  m_reader_low_mass_without_booleans.AddVariable("abs_eta_j",    &m_abs_eta_j);
+  m_reader_low_mass_without_booleans.AddVariable("abs_eta_jb",   &m_abs_eta_jb);
+  m_reader_low_mass_without_booleans.AddVariable("Delta_eta_jb", &m_Delta_eta_jb);
+  m_reader_low_mass_without_booleans.AddVariable("idx_by_mH",    &m_idx_by_mH);
+  m_reader_low_mass_without_booleans.AddVariable("idx_by_pT",    &m_idx_by_pT);
+  m_reader_low_mass_without_booleans.AddVariable("idx_by_pT_jb", &m_idx_by_pT_jb);
+  m_reader_low_mass_without_booleans.AddVariable("m_jb",         &m_m_jb);
+  m_reader_low_mass_without_booleans.AddVariable("pT_j",         &m_pT_j);
+  m_reader_low_mass_without_booleans.AddVariable("pT_jb",        &m_pT_jb);
+  m_reader_low_mass_without_booleans.BookMVA("OneTagClassifier_low_mass_without_booleans", PathResolverFindCalibFile("bbyyAnalysis/MVA_config_hh2yybb_low_mass_without_booleans.xml") );
+
+  ATH_MSG_INFO("Initialising TMVA reader: high mass [without booleans]");
+  m_reader_high_mass_without_booleans.AddVariable("abs_eta_j",      &m_abs_eta_j);
+  m_reader_high_mass_without_booleans.AddVariable("abs_eta_jb",     &m_abs_eta_jb);
+  m_reader_high_mass_without_booleans.AddVariable("Delta_eta_jb",   &m_Delta_eta_jb);
+  m_reader_high_mass_without_booleans.AddVariable("idx_by_mH",      &m_idx_by_mH);
+  m_reader_high_mass_without_booleans.AddVariable("idx_by_pT",      &m_idx_by_pT);
+  m_reader_high_mass_without_booleans.AddVariable("idx_by_pT_jb",   &m_idx_by_pT_jb);
+  m_reader_high_mass_without_booleans.AddVariable("m_jb",           &m_m_jb);
+  m_reader_high_mass_without_booleans.AddVariable("pT_j",           &m_pT_j);
+  m_reader_high_mass_without_booleans.AddVariable("pT_jb",          &m_pT_jb);
+  m_reader_high_mass_without_booleans.BookMVA("OneTagClassifier_high_mass_without_booleans", PathResolverFindCalibFile("bbyyAnalysis/MVA_config_hh2yybb_high_mass_without_booleans.xml") );
 
   return EL::StatusCode::SUCCESS;
 }
@@ -108,27 +152,30 @@ EL::StatusCode JetCutStudies::createOutput()
   // Add event tree to output file
   m_event_tree = new TTree("events", "events");
   m_event_tree->SetDirectory(file);
-  m_event_tree->Branch("photon_n",          &m_photon_n);
-  m_event_tree->Branch("photon_pT",         &m_photon_pT);
-  m_event_tree->Branch("photon_eta",        &m_photon_eta);
-  m_event_tree->Branch("photon_phi",        &m_photon_phi);
-  m_event_tree->Branch("photon_E",          &m_photon_E);
-  m_event_tree->Branch("photon_isTight",    &m_photon_isTight);
-  m_event_tree->Branch("m_yy",              &m_m_yy);
-  m_event_tree->Branch("jet_n",             &m_jet_n);
-  m_event_tree->Branch("jet_pT",            &m_jet_pT);
-  m_event_tree->Branch("jet_eta",           &m_jet_eta);
-  m_event_tree->Branch("jet_phi",           &m_jet_phi);
-  m_event_tree->Branch("jet_E",             &m_jet_E);
-  m_event_tree->Branch("jet_btag_loose",    &m_jet_btag_loose);
-  m_event_tree->Branch("jet_btag_tight",    &m_jet_btag_tight);
-  m_event_tree->Branch("jet_truth_tag",     &m_jet_truth_tag);
-  m_event_tree->Branch("jet_higgs_match",   &m_jet_higgs_match);
-  m_event_tree->Branch("jet_JVT",           &m_jet_JVT);
-  m_event_tree->Branch("jet_eta_det",       &m_jet_eta_det);
-  m_event_tree->Branch("jet_ML_classifier", &m_jet_ML_classifier);
-  m_event_tree->Branch("event_weight",      &m_event_weight);
-  m_event_tree->Branch("pileup_weight",     &m_pileup_weight);
+  m_event_tree->Branch("photon_n",                 &m_photon_n);
+  m_event_tree->Branch("photon_pT",                &m_photon_pT);
+  m_event_tree->Branch("photon_eta",               &m_photon_eta);
+  m_event_tree->Branch("photon_phi",               &m_photon_phi);
+  m_event_tree->Branch("photon_E",                 &m_photon_E);
+  m_event_tree->Branch("photon_isTight",           &m_photon_isTight);
+  m_event_tree->Branch("m_yy",                     &m_m_yy);
+  m_event_tree->Branch("jet_n",                    &m_jet_n);
+  m_event_tree->Branch("jet_pT",                   &m_jet_pT);
+  m_event_tree->Branch("jet_eta",                  &m_jet_eta);
+  m_event_tree->Branch("jet_phi",                  &m_jet_phi);
+  m_event_tree->Branch("jet_E",                    &m_jet_E);
+  m_event_tree->Branch("jet_btag_1tag",            &m_jet_btag_1tag);
+  m_event_tree->Branch("jet_btag_2tag",            &m_jet_btag_2tag);
+  m_event_tree->Branch("jet_btag_85",              &m_jet_btag_85);
+  m_event_tree->Branch("jet_classifier_low_mass",  &m_jet_classifier_low_mass);
+  m_event_tree->Branch("jet_classifier_high_mass", &m_jet_classifier_high_mass);
+  m_event_tree->Branch("jet_classifier_low_mass_without_booleans",  &m_jet_classifier_low_mass_without_booleans);
+  m_event_tree->Branch("jet_classifier_high_mass_without_booleans", &m_jet_classifier_high_mass_without_booleans);
+  m_event_tree->Branch("jet_truth_tag",            &m_jet_truth_tag);
+  m_event_tree->Branch("jet_higgs_match",          &m_jet_higgs_match);
+  m_event_tree->Branch("jet_eta_det",              &m_jet_eta_det);
+  m_event_tree->Branch("jet_m_jb",                 &m_jet_m_jb);
+  m_event_tree->Branch("event_weight",             &m_event_weight);
   return EL::StatusCode::SUCCESS;
 }
 
@@ -155,19 +202,17 @@ EL::StatusCode JetCutStudies::execute()
 
   if (!isMC()) {
     m_event_weight = CommonTools::luminosity_invfb() / 12.171;
-    m_pileup_weight = 1;
+    m_sum_pileup_weights += 1;
   } else {
     // Get overall event weight, normalised to 1fb-1
     unsigned int mcChannelNumber = eventInfo()->mcChannelNumber();
-    m_event_weight = eventHandler()->mcWeight() * CommonTools::luminosity_invfb() *
-                     CommonTools::xs_fb(mcChannelNumber, getCrossSection(mcChannelNumber), false) *
+    m_event_weight = eventHandler()->mcWeight() * eventHandler()->pileupWeight() * eventHandler()->vertexWeight() *
+                     CommonTools::luminosity_invfb() * CommonTools::xs_fb(mcChannelNumber, getCrossSection(mcChannelNumber), false) *
                      HgammaAnalysis::getGeneratorEfficiency(mcChannelNumber) *
                      HgammaAnalysis::getKFactor(mcChannelNumber) / CommonTools::sumOfWeights(mcChannelNumber);
-
-    // Get pileup weight
-    m_pileup_weight = eventHandler()->pileupWeight();
+    m_sum_pileup_weights += eventHandler()->pileupWeight();
   }
-  m_sum_pileup_weights += m_pileup_weight;
+
 
   // ___________________________________________________________________________________________
   // Retrieve truth Higgs bosons
@@ -238,9 +283,14 @@ EL::StatusCode JetCutStudies::execute()
   xAOD::JetContainer jets_failing_1tag_WP(SG::VIEW_ELEMENTS);
 
   // Initialise 1-tag classifier to false and fill b-jet containers
-  SG::AuxElement::Accessor<double> accOneTagClassifier("OneTagClassifier");
+  SG::AuxElement::Accessor<double> accOneTagClassifierLowMass("OneTagClassifier_low_mass");
+  SG::AuxElement::Accessor<double> accOneTagClassifierHighMass("OneTagClassifier_high_mass");
+  SG::AuxElement::Accessor<double> accOneTagClassifierLowMassWithoutBooleans("OneTagClassifier_low_mass_without_booleans");
+  SG::AuxElement::Accessor<double> accOneTagClassifierHighMassWithoutBooleans("OneTagClassifier_high_mass_without_booleans");
+  SG::AuxElement::Accessor<double> accMjb("m_jb");
   for (auto jet : jets_selected) {
-    accOneTagClassifier(*jet) = -99;
+    accOneTagClassifierLowMass(*jet) = -99; accOneTagClassifierHighMass(*jet) = -99; accMjb(*jet) = -99;
+    accOneTagClassifierLowMassWithoutBooleans(*jet) = -99; accOneTagClassifierHighMassWithoutBooleans(*jet) = -99;
     if (jet->auxdata<char>(m_2_tag_WP)) { jets_passing_2tag_WP.push_back(jet); }
     if (jet->auxdata<char>(m_1_tag_WP)) { jets_passing_1tag_WP.push_back(jet); }
     else { jets_failing_1tag_WP.push_back(jet); }
@@ -253,32 +303,42 @@ EL::StatusCode JetCutStudies::execute()
 
   // Clear vectors
   m_jet_E.clear(); m_jet_pT.clear(); m_jet_eta.clear(); m_jet_phi.clear();
-  m_jet_btag_loose.clear(); m_jet_btag_tight.clear(); m_jet_truth_tag.clear();
-  m_jet_higgs_match.clear(); m_jet_JVT.clear(); m_jet_eta_det.clear(); m_jet_ML_classifier.clear();
+  m_jet_btag_1tag.clear(); m_jet_btag_2tag.clear(); m_jet_btag_85.clear(); m_jet_truth_tag.clear();
+  m_jet_higgs_match.clear(); m_jet_eta_det.clear(); m_jet_m_jb.clear();
+  m_jet_classifier_low_mass.clear(); m_jet_classifier_high_mass.clear();
+  m_jet_classifier_low_mass_without_booleans.clear(); m_jet_classifier_high_mass_without_booleans.clear();
 
   // Fill jet information into tree
   m_jet_n = jets_selected.size();
-  std::cout << "*** begin event ***" << std::endl;
+  ATH_MSG_DEBUG( "Found " << jets_passing_1tag_WP.size() << " jets passing the 1-tag WP and " << jets_passing_2tag_WP.size() << " passing the 2-tag WP." );
   for( const auto& jet : jets_selected ) {
     m_jet_E.push_back( jet->auxdata<double>("muon_E") / HG::GeV );
     m_jet_pT.push_back( jet->auxdata<double>("muon_pT") / HG::GeV );
     m_jet_eta.push_back( jet->auxdata<double>("muon_eta") );
     m_jet_phi.push_back( jet->auxdata<double>("muon_phi") );
-    m_jet_btag_loose.push_back( jet->auxdata<char>(m_2_tag_WP) );
-    m_jet_btag_tight.push_back( jet->auxdata<char>(m_1_tag_WP) );
+    m_jet_btag_1tag.push_back( jet->auxdata<char>(m_1_tag_WP) );
+    m_jet_btag_2tag.push_back( jet->auxdata<char>(m_2_tag_WP) );
+    m_jet_btag_85.push_back( jet->auxdata<char>("MV2c10_FixedCutBEff_85") );
     m_jet_truth_tag.push_back( jet->auxdata<int>("HadronConeExclTruthLabelID") == 5 );
     m_jet_higgs_match.push_back( jet->auxdata<char>("HiggsMatched") );
-    m_jet_JVT.push_back( jet->auxdata<float>("Jvt") );
-    m_jet_ML_classifier.push_back( jet->auxdata<double>("OneTagClassifier") );
+    //m_jet_JVT.push_back( jet->auxdata<float>("Jvt") );
+    m_jet_m_jb.push_back( jet->auxdata<double>("m_jb") );
+    m_jet_classifier_low_mass.push_back( jet->auxdata<double>("OneTagClassifier_low_mass") );
+    m_jet_classifier_high_mass.push_back( jet->auxdata<double>("OneTagClassifier_high_mass") );
+    m_jet_classifier_low_mass_without_booleans.push_back( jet->auxdata<double>("OneTagClassifier_low_mass_without_booleans") );
+    m_jet_classifier_high_mass_without_booleans.push_back( jet->auxdata<double>("OneTagClassifier_high_mass_without_booleans") );
     if(isMAOD()) {
       m_jet_eta_det.push_back( jet->auxdata<float>("DetectorEta") );
     } else {
       m_jet_eta_det.push_back( jet->getAttribute<xAOD::JetFourMom_t>("JetConstitScaleMomentum").eta() );
     }
-    ATH_MSG_INFO("... found jet with classifier value: " << jet->auxdata<double>("OneTagClassifier") << " b-tagged: " << (jet->auxdata<char>(m_1_tag_WP) ? "TIGHT" : jet->auxdata<char>(m_2_tag_WP) ? "LOOSE" : "NO") << " and HiggsMatched: " << (jet->auxdata<char>("HiggsMatched") ? "YES" : "NO"));
+    ATH_MSG_DEBUG("... found jet b-tagged: " << (jet->auxdata<char>(m_1_tag_WP) ? "1TAG" : jet->auxdata<char>(m_2_tag_WP) ? "2TAG" : jet->auxdata<char>("MV2c10_FixedCutBEff_77") ? "77" : jet->auxdata<char>("MV2c10_FixedCutBEff_85") ? "85" : "NO")
+                 << " and HiggsMatched: " << (jet->auxdata<char>("HiggsMatched") ? "YES" : "NO")
+                 << " with classifiers: low-mass = " << jet->auxdata<double>("OneTagClassifier_low_mass")
+                                  << ", high-mass =" << jet->auxdata<double>("OneTagClassifier_high_mass")
+                                  << ", low-mass [without booleans] = " << jet->auxdata<double>("OneTagClassifier_low_mass_without_booleans")
+                                  << ", high-mass [without booleans] =" << jet->auxdata<double>("OneTagClassifier_high_mass_without_booleans") );
   }
-  for( auto v : m_jet_ML_classifier ) { std::cout << v << std::endl; }
-  std::cout << "*** end event ***" << std::endl;
 
   // Fill event-level tree
   m_event_tree->Fill();
@@ -290,7 +350,6 @@ EL::StatusCode JetCutStudies::execute()
  * Add jet pairing to event-level vectors
  * @return nothing
  */
-// void JetCutStudies::decorateWithClassifier( const xAOD::Jet& bjet, const xAOD::Jet& otherjet ) {
 void JetCutStudies::decorateWithClassifier( const xAOD::Jet& bjet, xAOD::JetContainer& nonbjets ) {
   // Add idx_by_mH and idx_by_pT decorations
   CommonTools::decorateWithIndices(bjet, nonbjets);
@@ -306,11 +365,14 @@ void JetCutStudies::decorateWithClassifier( const xAOD::Jet& bjet, xAOD::JetCont
     m_idx_by_pT = otherjet->auxdata<int>("idx_by_pT");
     m_idx_by_pT_jb = otherjet->auxdata<int>("idx_by_pT_jb");
     m_m_jb = jb_p4.M() / HG::GeV;
+    m_passes_WP77 = (otherjet->auxdata<char>("MV2c10_FixedCutBEff_77") ? 1.0 : 0.0);
+    m_passes_WP85 = (otherjet->auxdata<char>("MV2c10_FixedCutBEff_85") ? 1.0 : 0.0);
     m_pT_j = j_p4.Pt() / HG::GeV;
     m_pT_jb = jb_p4.Pt() / HG::GeV;
-    std::cout << "... old value:" << otherjet->auxdata<double>("OneTagClassifier") << std::endl;
-    otherjet->auxdata<double>("OneTagClassifier") = m_reader.EvaluateMVA("OneTagClassifier");
-    std::cout << "... new value:" << otherjet->auxdata<double>("OneTagClassifier") << std::endl;
+    otherjet->auxdata<double>("OneTagClassifier_low_mass") = m_reader_low_mass.EvaluateMVA("OneTagClassifier_low_mass");
+    otherjet->auxdata<double>("OneTagClassifier_high_mass") = m_reader_high_mass.EvaluateMVA("OneTagClassifier_high_mass");
+    otherjet->auxdata<double>("OneTagClassifier_low_mass_without_booleans") = m_reader_low_mass_without_booleans.EvaluateMVA("OneTagClassifier_low_mass_without_booleans");
+    otherjet->auxdata<double>("OneTagClassifier_high_mass_without_booleans") = m_reader_high_mass_without_booleans.EvaluateMVA("OneTagClassifier_high_mass_without_booleans");
   }
 }
 

@@ -30,6 +30,8 @@ private:
   std::vector<int> m_v_idx_by_pT; //!
   std::vector<int> m_v_idx_by_pT_jb; //!
   std::vector<double> m_v_m_jb; //!
+  std::vector<int> m_v_passes_WP77; //!
+  std::vector<int> m_v_passes_WP85; //!
   std::vector<double> m_v_pT_j; //!
   std::vector<double> m_v_pT_jb; //!
   std::vector<double> m_v_isCorrect; //!
@@ -40,9 +42,6 @@ private:
 
   /// Cutflow counters
   std::map< std::string, unsigned int > m_cutFlow; //!
-
-  // /// Decorate with pT and mH indices
-  // void decorateWithIndices( const xAOD::Jet& bjet, xAOD::JetContainer& nonbjets );
 
   /// Calculate quantities for output trees
   void appendToOutput( const bool& isCorrect, const xAOD::Jet& bjet, const xAOD::Jet& otherjet );
