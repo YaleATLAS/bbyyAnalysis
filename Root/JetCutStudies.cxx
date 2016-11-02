@@ -316,11 +316,11 @@ EL::StatusCode JetCutStudies::execute()
     m_jet_pT.push_back( jet->auxdata<double>("muon_pT") / HG::GeV );
     m_jet_eta.push_back( jet->auxdata<double>("muon_eta") );
     m_jet_phi.push_back( jet->auxdata<double>("muon_phi") );
-    m_jet_btag_1tag.push_back( jet->auxdata<char>(m_1_tag_WP) );
-    m_jet_btag_2tag.push_back( jet->auxdata<char>(m_2_tag_WP) );
-    m_jet_btag_85.push_back( jet->auxdata<char>("MV2c10_FixedCutBEff_85") );
-    m_jet_truth_tag.push_back( jet->auxdata<int>("HadronConeExclTruthLabelID") == 5 );
-    m_jet_higgs_match.push_back( jet->auxdata<char>("HiggsMatched") );
+    m_jet_btag_1tag.push_back( jet->auxdata<char>(m_1_tag_WP) ? 1 : 0 );
+    m_jet_btag_2tag.push_back( jet->auxdata<char>(m_2_tag_WP) ? 1 : 0 );
+    m_jet_btag_85.push_back( jet->auxdata<char>("MV2c10_FixedCutBEff_85") ? 1 : 0 );
+    m_jet_truth_tag.push_back( jet->auxdata<int>("HadronConeExclTruthLabelID") == 5  ? 1 : 0 );
+    m_jet_higgs_match.push_back( jet->auxdata<char>("HiggsMatched")  ? 1 : 0 );
     //m_jet_JVT.push_back( jet->auxdata<float>("Jvt") );
     m_jet_m_jb.push_back( jet->auxdata<double>("m_jb") );
     m_jet_classifier_low_mass.push_back( jet->auxdata<double>("OneTagClassifier_low_mass") );

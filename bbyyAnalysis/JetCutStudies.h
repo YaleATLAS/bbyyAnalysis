@@ -44,16 +44,16 @@ private:
   std::vector<double> m_photon_eta, m_jet_eta, m_jet_eta_det; //!
   std::vector<double> m_photon_phi, m_jet_phi; //!
   std::vector<double> m_photon_E, m_jet_E; //!
-  std::vector<bool> m_photon_isTight; //!
-  std::vector<bool> m_jet_btag_1tag; //!
-  std::vector<bool> m_jet_btag_2tag; //!
-  std::vector<bool> m_jet_btag_85; //!
+  std::vector<int> m_photon_isTight; //!
+  std::vector<int> m_jet_btag_1tag; //!
+  std::vector<int> m_jet_btag_2tag; //!
+  std::vector<int> m_jet_btag_85; //!
   std::vector<double> m_jet_classifier_low_mass; //!
   std::vector<double> m_jet_classifier_high_mass; //!
   std::vector<double> m_jet_classifier_low_mass_without_booleans; //!
   std::vector<double> m_jet_classifier_high_mass_without_booleans; //!
-  std::vector<bool> m_jet_truth_tag; //!
-  std::vector<bool> m_jet_higgs_match; //!
+  std::vector<int> m_jet_truth_tag; //!
+  std::vector<int> m_jet_higgs_match; //!
   std::vector<double> m_jet_m_jb; //!
 
   /// Event weights
