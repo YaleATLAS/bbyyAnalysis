@@ -36,10 +36,17 @@ private:
   std::vector<double> m_v_pT_jb; //!
   std::vector<double> m_v_isCorrect; //!
 
+  std::vector<double> m_dPhi_yy_jb; //!
+  std::vector<double> m_dEta_yy_jb; //!
+  std::vector<double> m_dR_yy_jb; //!
+  std::vector<double> m_fdiff_pT_yy_jb; //!
+  std::vector<double> m_proj_pT_yy_jb; //!
+
   /// Event weights
   double m_event_weight; //!
   double m_sum_mc_weights; //!
 
+  TLorentzVector m_diphoton; //!
   double m_diphoton_pT; //!
   double m_diphoton_eta; //!
   double m_diphoton_phi; //!

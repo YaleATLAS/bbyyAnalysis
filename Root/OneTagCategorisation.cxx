@@ -35,6 +35,11 @@ OneTagCategorisation::OneTagCategorisation(const char *name)
   , m_v_pT_j(0)
   , m_v_pT_jb(0)
   , m_v_isCorrect(0)
+  , m_dPhi_yy_jb(0)
+  , m_dEta_yy_jb(0)
+  , m_dR_yy_jb(0)
+  , m_fdiff_pT_yy_jb(0)
+  , m_proj_pT_yy_jb(0)
   , m_event_weight(0)
   , m_sum_mc_weights(0)
   , m_diphoton_pT(0)
@@ -110,6 +115,13 @@ EL::StatusCode OneTagCategorisation::createOutput()
   m_event_tree_1tag->Branch("passes_WP85",  &m_v_passes_WP85);
   m_event_tree_1tag->Branch("pT_j",         &m_v_pT_j);
   m_event_tree_1tag->Branch("pT_jb",        &m_v_pT_jb);
+
+  m_event_tree_1tag->Branch("dPhi_yy_jb",   &m_dPhi_yy_jb);
+  m_event_tree_1tag->Branch("dEta_yy_jb",   &m_dEta_yy_jb);
+  m_event_tree_1tag->Branch("dR_yy_jb",   &m_dR_yy_jb);
+  m_event_tree_1tag->Branch("fdiff_pT_yy_jb",   &m_fdiff_pT_yy_jb);
+  m_event_tree_1tag->Branch("proj_pT_yy_jb",   &m_proj_pT_yy_jb);
+
   m_event_tree_1tag->Branch("isCorrect",    &m_v_isCorrect);
   m_event_tree_1tag->Branch("event_weight", &m_event_weight);
   m_event_tree_1tag->Branch("diphoton_pT",  &m_diphoton_pT);
@@ -152,6 +164,11 @@ EL::StatusCode OneTagCategorisation::execute()
   m_v_idx_by_mH.clear(); m_v_idx_by_pT.clear(); m_v_idx_by_pT_jb.clear();
   m_v_m_jb.clear(); m_v_passes_WP77.clear(); m_v_passes_WP85.clear();
   m_v_pT_j.clear(); m_v_pT_jb.clear(); m_v_isCorrect.clear();
+  m_dPhi_yy_jb.clear();
+  m_dEta_yy_jb.clear();
+  m_dR_yy_jb.clear();
+  m_fdiff_pT_yy_jb.clear();
+  m_proj_pT_yy_jb.clear();
 
   // Important to keep this, so that internal tools / event variables
   // are filled properly.
@@ -206,11 +223,11 @@ EL::StatusCode OneTagCategorisation::execute()
   const xAOD::Photon *ph1 = photons_selected[0];
   const xAOD::Photon *ph2 = photons_selected[1];
 
-  TLorentzVector diphoton = ph1->p4() + ph2->p4();
-  m_diphoton_pT  = diphoton.Pt();
-  m_diphoton_eta = diphoton.Eta();
-  m_diphoton_phi = diphoton.Phi();
-  m_diphoton_m   = diphoton.M();
+  m_diphoton = ph1->p4() + ph2->p4();
+  m_diphoton_pT  = m_diphoton.Pt();
+  m_diphoton_eta = m_diphoton.Eta();
+  m_diphoton_phi = m_diphoton.Phi();
+  m_diphoton_m   = m_diphoton.M();
 
   // ___________________________________________________________________________________________
   // Decorate muon correction to jets
@@ -357,4 +374,11 @@ void OneTagCategorisation::appendToOutput( const bool& isCorrect, const xAOD::Je
   m_v_pT_j.push_back( j_p4.Pt() / HG::GeV );
   m_v_pT_jb.push_back( jb_p4.Pt() / HG::GeV );
   m_v_isCorrect.push_back( isCorrect );
+
+  m_dPhi_yy_jb.push_back(m_diphoton.DeltaPhi(jb_p4));
+  m_dEta_yy_jb.push_back(m_diphoton.Eta() - jb_p4.Eta());
+  m_dR_yy_jb.push_back(m_diphoton.DeltaR(jb_p4));
+
+  m_fdiff_pT_yy_jb.push_back( (m_diphoton.Pt() - jb_p4.Pt()) / m_diphoton.Pt());
+  m_proj_pT_yy_jb.push_back( jb_p4.Pt()*TMath::Cos(m_diphoton.DeltaPhi(jb_p4)) / m_diphoton.Pt() );
 }
