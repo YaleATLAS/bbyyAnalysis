@@ -40,6 +40,11 @@ private:
   double m_event_weight; //!
   double m_sum_mc_weights; //!
 
+  double m_diphoton_pT; //!
+  double m_diphoton_eta; //!
+  double m_diphoton_phi; //!
+  double m_diphoton_m; //!
+
   /// Cutflow counters
   std::map< std::string, unsigned int > m_cutFlow; //!
 

@@ -37,6 +37,10 @@ OneTagCategorisation::OneTagCategorisation(const char *name)
   , m_v_isCorrect(0)
   , m_event_weight(0)
   , m_sum_mc_weights(0)
+  , m_diphoton_pT(0)
+  , m_diphoton_eta(0)
+  , m_diphoton_phi(0)
+  , m_diphoton_m(0)
   , m_cutFlow({{"Events", 0}, {"PassingPreselection", 0}, {"PassedBTagging", 0}, {"is1tag", 0}, {"is2tag", 0}, {"correctPairs", 0}, {"incorrectPairs", 0}})
 {
   // Here you put any code for the base initialization of variables,
@@ -108,6 +112,10 @@ EL::StatusCode OneTagCategorisation::createOutput()
   m_event_tree_1tag->Branch("pT_jb",        &m_v_pT_jb);
   m_event_tree_1tag->Branch("isCorrect",    &m_v_isCorrect);
   m_event_tree_1tag->Branch("event_weight", &m_event_weight);
+  m_event_tree_1tag->Branch("diphoton_pT",  &m_diphoton_pT);
+  m_event_tree_1tag->Branch("diphoton_eta", &m_diphoton_eta);
+  m_event_tree_1tag->Branch("diphoton_phi", &m_diphoton_phi);
+  m_event_tree_1tag->Branch("diphoton_m",   &m_diphoton_m);
 
   // Add 2-tag event tree to output file
   m_event_tree_2tag = new TTree("events_2tag", "events_2tag");
@@ -194,6 +202,15 @@ EL::StatusCode OneTagCategorisation::execute()
     return StatusCode::SUCCESS;
   }
   m_cutFlow["PassingPreselection"]++;
+
+  const xAOD::Photon *ph1 = photons_selected[0];
+  const xAOD::Photon *ph2 = photons_selected[1];
+
+  TLorentzVector diphoton = ph1->p4() + ph2->p4();
+  m_diphoton_pT  = diphoton.Pt();
+  m_diphoton_eta = diphoton.Eta();
+  m_diphoton_phi = diphoton.Phi();
+  m_diphoton_m   = diphoton.M();
 
   // ___________________________________________________________________________________________
   // Decorate muon correction to jets
