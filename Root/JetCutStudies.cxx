@@ -207,7 +207,7 @@ EL::StatusCode JetCutStudies::execute()
     // Get overall event weight, normalised to 1fb-1
     unsigned int mcChannelNumber = eventInfo()->mcChannelNumber();
     m_event_weight = eventHandler()->mcWeight() * eventHandler()->pileupWeight() * eventHandler()->vertexWeight() *
-                     CommonTools::luminosity_invfb() * CommonTools::xs_fb(mcChannelNumber, getCrossSection(mcChannelNumber), false) *
+                     CommonTools::luminosity_invfb() * CommonTools::xs_fb(mcChannelNumber, getCrossSection(mcChannelNumber)) *
                      HgammaAnalysis::getGeneratorEfficiency(mcChannelNumber) *
                      HgammaAnalysis::getKFactor(mcChannelNumber) / CommonTools::sumOfWeights(mcChannelNumber);
     m_sum_pileup_weights += eventHandler()->pileupWeight();

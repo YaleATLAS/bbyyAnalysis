@@ -143,16 +143,26 @@ namespace CommonTools {
    * Return the sample cross-section
    * @return sample cross-section in fb
    */
-  inline double xs_fb(const int& mcID, const double& default_pb, const bool& scaleBSM = false) {
+  inline double xs_fb(const int& mcID, const double& default_pb) {
     // Use Moriond 2016 limits
-    double xs_fb = 1e3 * default_pb;
-    if (mcID == 341173) { xs_fb = 12.89 * (scaleBSM ? 0.2 : 1.0); } // X275->hh->yybb
-    if (mcID == 341004) { xs_fb = 12.89 * (scaleBSM ? 0.2 : 1.0); } // X300->hh->yybb
-    if (mcID == 341174) { xs_fb = 12.89 * (scaleBSM ? 0.2 : 1.0); } // X325->hh->yybb
-    if (mcID == 341175) { xs_fb = 12.89 * (scaleBSM ? 0.2 : 1.0); } // X350->hh->yybb
-    if (mcID == 341176) { xs_fb = 12.89 * (scaleBSM ? 0.2 : 1.0); } // X400->hh->yybb
+    double xs_fb = 1e3 * default_pb; //sherpa default_pb is 4.0127E+001
+    if (mcID == 341173) { xs_fb = 12.89; } // X275->hh->yybb
+    if (mcID == 341004) { xs_fb = 12.89; } // X300->hh->yybb
+    if (mcID == 341174) { xs_fb = 12.89; } // X325->hh->yybb
+    if (mcID == 341175) { xs_fb = 12.89; } // X350->hh->yybb
+    if (mcID == 341176) { xs_fb = 12.89; } // X400->hh->yybb
     if (mcID == 342620) { xs_fb = 12.89; } // SM NLO hh->yybb
-    return xs_fb; //sherpa default_pb is 4.0127E+001
+    if (mcID == 343696) { xs_fb = 12.89; } // X260->hh->yybb
+    if (mcID == 343697) { xs_fb = 12.89; } // X275->hh->yybb
+    if (mcID == 343698) { xs_fb = 12.89; } // X300->hh->yybb
+    if (mcID == 343699) { xs_fb = 12.89; } // X325->hh->yybb
+    if (mcID == 343700) { xs_fb = 12.89; } // X350->hh->yybb
+    if (mcID == 343701) { xs_fb = 12.89; } // X400->hh->yybb
+    if (mcID == 343702) { xs_fb = 12.89; } // X450->hh->yybb
+    if (mcID == 343703) { xs_fb = 12.89; } // X500->hh->yybb
+    if (mcID == 343745) { xs_fb = 12.89; } // X750->hh->yybb
+    if (mcID == 343746) { xs_fb = 12.89; } // X1000->hh->yybb
+    return xs_fb;
   }
 
   /**
@@ -172,8 +182,20 @@ namespace CommonTools {
     if (mcID == 341174) { return 100000; }     // X325->hh->yybb
     if (mcID == 341175) { return 100000; }     // X350->hh->yybb
     if (mcID == 341176) { return 100000; }     // X400->hh->yybb
-    if (mcID == 341939) { return 80604609.6; } // Sherpa photons+jets
+    if (mcID == 341939) { return 80604609.6; } // Sherpa photons+jets (from 78805036 events)
     if (mcID == 342620) { return 2134.103; }   // SM NLO hh->yybb (from 200000 events)
+    if (mcID == 343696) { return 4113.523; }   // X260->hh->yybb (from 195000 events)
+    if (mcID == 343697) { return 2467.1631; }  // X275->hh->yybb (from 198000 events)
+    if (mcID == 343698) { return 1385.7799; }  // X300->hh->yybb (from 197000 events)
+    if (mcID == 343699) { return 1008.6831; }  // X325->hh->yybb (from 200000 events)
+    if (mcID == 343700) { return 1075.9981; }  // X350->hh->yybb (from 199000 events)
+    if (mcID == 343701) { return 2226.3208; }  // X400->hh->yybb (from 199000 events)
+    if (mcID == 343702) { return 3678.5269; }  // X450->hh->yybb (from 199000 events)
+    if (mcID == 343703) { return 5916.239; }   // X500->hh->yybb (from 198000 events)
+    if (mcID == 343745) { return 11038.052; }  // X750->hh->yybb (from 198000 events)
+    if (mcID == 343746) { return 6471.732; }   // X1000->hh->yybb (from 199000 events)
     return 1.0;
   }
 }
+
+// {341939: [79089253.39999989, 78744813]} 78805036
