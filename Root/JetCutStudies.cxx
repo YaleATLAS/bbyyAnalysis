@@ -33,7 +33,7 @@ JetCutStudies::JetCutStudies(const char *name)
   , m_idx_by_mH(0)
   , m_idx_by_pT(0)
   , m_idx_by_pT_jb(0)
-  , m_m_jj(0)
+  , m_m_jb(0)
   , m_pT_j(0)
   , m_pT_jb(0)
   , m_event_weight(0)
@@ -100,8 +100,8 @@ EL::StatusCode JetCutStudies::initialize()
   m_reader_high_mass_with_booleans.AddVariable("idx_by_pT",      &m_idx_by_pT);
   m_reader_high_mass_with_booleans.AddVariable("idx_by_pT_jb",   &m_idx_by_pT_jb);
   m_reader_high_mass_with_booleans.AddVariable("m_jb",           &m_m_jb);
-  m_reader_high_mass_with_booleans.AddVariable("passes_WP77",  &m_passes_WP77);
-  m_reader_high_mass_with_booleans.AddVariable("passes_WP85",  &m_passes_WP85);
+  m_reader_high_mass_with_booleans.AddVariable("passes_WP77",    &m_passes_WP77);
+  m_reader_high_mass_with_booleans.AddVariable("passes_WP85",    &m_passes_WP85);
   m_reader_high_mass_with_booleans.AddVariable("pT_j",           &m_pT_j);
   m_reader_high_mass_with_booleans.AddVariable("pT_jb",          &m_pT_jb);
   m_reader_high_mass_with_booleans.BookMVA("OneTagClassifier_high_mass_with_booleans", PathResolverFindCalibFile("bbyyAnalysis/MVA_config_hh2yybb_high_mass_with_booleans.xml") );
@@ -307,7 +307,7 @@ EL::StatusCode JetCutStudies::execute()
   SG::AuxElement::Accessor<double> accOneTagClassifierHighMass("OneTagClassifier_high_mass_with_booleans");
   SG::AuxElement::Accessor<double> accOneTagClassifierLowMassWithoutBooleans("OneTagClassifier_low_mass_without_booleans");
   SG::AuxElement::Accessor<double> accOneTagClassifierHighMassWithoutBooleans("OneTagClassifier_high_mass_without_booleans");
-  SG::AuxElement::Accessor<double> accMjb("m_jj");
+  SG::AuxElement::Accessor<double> accMjb("m_jb");
   for (auto jet : jets_selected) {
     accOneTagClassifierLowMass(*jet) = -99; accOneTagClassifierHighMass(*jet) = -99; accMjb(*jet) = -99;
     accOneTagClassifierLowMassWithoutBooleans(*jet) = -99; accOneTagClassifierHighMassWithoutBooleans(*jet) = -99;
