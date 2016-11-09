@@ -331,8 +331,8 @@ EL::StatusCode JetCutStudies::execute()
     m_m_jj_2tag = jj_p4.M() / HG::GeV;
     yyjj_p4 = yy_p4 + jj_p4;
     m_m_yyjj_2tag = yyjj_p4.M() / HG::GeV;
-    m_jet_pT1_2tag = std::max(jets_passing_2tag_WP.at(0)->pt(), jets_passing_2tag_WP.at(1)->pt());
-    m_jet_pT2_2tag = std::min(jets_passing_2tag_WP.at(0)->pt(), jets_passing_2tag_WP.at(1)->pt());
+    m_jet_pT1_2tag = std::max(jets_passing_2tag_WP.at(0)->pt(), jets_passing_2tag_WP.at(1)->pt()) / HG::GeV;
+    m_jet_pT2_2tag = std::min(jets_passing_2tag_WP.at(0)->pt(), jets_passing_2tag_WP.at(1)->pt()) / HG::GeV;
 
   // 1-tag events need to have jets decorated with the classifiers
   } else if (m_tag_category == 1) {
@@ -347,8 +347,8 @@ EL::StatusCode JetCutStudies::execute()
     m_m_jj_1tag_low_mass_with_booleans = jj_p4.M() / HG::GeV;
     yyjj_p4 = yy_p4 + jj_p4;
     m_m_yyjj_1tag_low_mass_with_booleans = yyjj_p4.M() / HG::GeV;
-    m_jet_pT1_1tag_low_mass_with_booleans = std::max(jets_passing_1tag_WP.at(0)->pt(), jets_failing_1tag_WP.at(0)->pt());
-    m_jet_pT2_1tag_low_mass_with_booleans = std::min(jets_passing_1tag_WP.at(0)->pt(), jets_failing_1tag_WP.at(0)->pt());
+    m_jet_pT1_1tag_low_mass_with_booleans = std::max(jets_passing_1tag_WP.at(0)->pt(), jets_failing_1tag_WP.at(0)->pt()) / HG::GeV;
+    m_jet_pT2_1tag_low_mass_with_booleans = std::min(jets_passing_1tag_WP.at(0)->pt(), jets_failing_1tag_WP.at(0)->pt()) / HG::GeV;
 
     // Low mass without booleans
     std::sort(jets_failing_1tag_WP.begin(), jets_failing_1tag_WP.end(), [](const xAOD::Jet *i, const xAOD::Jet *j) {
@@ -359,8 +359,8 @@ EL::StatusCode JetCutStudies::execute()
     m_m_jj_1tag_low_mass_without_booleans = jj_p4.M() / HG::GeV;
     yyjj_p4 = yy_p4 + jj_p4;
     m_m_yyjj_1tag_low_mass_without_booleans = yyjj_p4.M() / HG::GeV;
-    m_jet_pT1_1tag_low_mass_without_booleans = std::max(jets_passing_1tag_WP.at(0)->pt(), jets_failing_1tag_WP.at(0)->pt());
-    m_jet_pT2_1tag_low_mass_without_booleans = std::min(jets_passing_1tag_WP.at(0)->pt(), jets_failing_1tag_WP.at(0)->pt());
+    m_jet_pT1_1tag_low_mass_without_booleans = std::max(jets_passing_1tag_WP.at(0)->pt(), jets_failing_1tag_WP.at(0)->pt()) / HG::GeV;
+    m_jet_pT2_1tag_low_mass_without_booleans = std::min(jets_passing_1tag_WP.at(0)->pt(), jets_failing_1tag_WP.at(0)->pt()) / HG::GeV;
 
     // Low mass without booleans with requirement on 85% WP
     std::sort(jets_failing_1tag_WP.begin(), jets_failing_1tag_WP.end(), [](const xAOD::Jet *i, const xAOD::Jet *j) {
@@ -371,8 +371,8 @@ EL::StatusCode JetCutStudies::execute()
     m_m_jj_1tag_low_mass_without_booleans_with_cut85 = jj_p4.M() / HG::GeV;
     yyjj_p4 = yy_p4 + jj_p4;
     m_m_yyjj_1tag_low_mass_without_booleans_with_cut85 = yyjj_p4.M() / HG::GeV;
-    m_jet_pT1_1tag_low_mass_without_booleans_with_cut85 = std::max(jets_passing_1tag_WP.at(0)->pt(), jets_failing_1tag_WP.at(0)->pt());
-    m_jet_pT2_1tag_low_mass_without_booleans_with_cut85 = std::min(jets_passing_1tag_WP.at(0)->pt(), jets_failing_1tag_WP.at(0)->pt());
+    m_jet_pT1_1tag_low_mass_without_booleans_with_cut85 = std::max(jets_passing_1tag_WP.at(0)->pt(), jets_failing_1tag_WP.at(0)->pt()) / HG::GeV;
+    m_jet_pT2_1tag_low_mass_without_booleans_with_cut85 = std::min(jets_passing_1tag_WP.at(0)->pt(), jets_failing_1tag_WP.at(0)->pt()) / HG::GeV;
 
     // High mass with booleans
     std::sort(jets_failing_1tag_WP.begin(), jets_failing_1tag_WP.end(), [](const xAOD::Jet *i, const xAOD::Jet *j) {
@@ -383,8 +383,8 @@ EL::StatusCode JetCutStudies::execute()
     m_m_jj_1tag_high_mass_with_booleans = jj_p4.M() / HG::GeV;
     yyjj_p4 = yy_p4 + jj_p4;
     m_m_yyjj_1tag_high_mass_with_booleans = yyjj_p4.M() / HG::GeV;
-    m_jet_pT1_1tag_high_mass_with_booleans = std::max(jets_passing_1tag_WP.at(0)->pt(), jets_failing_1tag_WP.at(0)->pt());
-    m_jet_pT2_1tag_high_mass_with_booleans = std::min(jets_passing_1tag_WP.at(0)->pt(), jets_failing_1tag_WP.at(0)->pt());
+    m_jet_pT1_1tag_high_mass_with_booleans = std::max(jets_passing_1tag_WP.at(0)->pt(), jets_failing_1tag_WP.at(0)->pt()) / HG::GeV;
+    m_jet_pT2_1tag_high_mass_with_booleans = std::min(jets_passing_1tag_WP.at(0)->pt(), jets_failing_1tag_WP.at(0)->pt()) / HG::GeV;
 
     // High mass without booleans
     std::sort(jets_failing_1tag_WP.begin(), jets_failing_1tag_WP.end(), [](const xAOD::Jet *i, const xAOD::Jet *j) {
@@ -395,8 +395,8 @@ EL::StatusCode JetCutStudies::execute()
     m_m_jj_1tag_high_mass_without_booleans = jj_p4.M() / HG::GeV;
     yyjj_p4 = yy_p4 + jj_p4;
     m_m_yyjj_1tag_high_mass_without_booleans = yyjj_p4.M() / HG::GeV;
-    m_jet_pT1_1tag_high_mass_without_booleans = std::max(jets_passing_1tag_WP.at(0)->pt(), jets_failing_1tag_WP.at(0)->pt());
-    m_jet_pT2_1tag_high_mass_without_booleans = std::min(jets_passing_1tag_WP.at(0)->pt(), jets_failing_1tag_WP.at(0)->pt());
+    m_jet_pT1_1tag_high_mass_without_booleans = std::max(jets_passing_1tag_WP.at(0)->pt(), jets_failing_1tag_WP.at(0)->pt()) / HG::GeV;
+    m_jet_pT2_1tag_high_mass_without_booleans = std::min(jets_passing_1tag_WP.at(0)->pt(), jets_failing_1tag_WP.at(0)->pt()) / HG::GeV;
 
     // High mass without booleans with requirement on 85% WP
     std::sort(jets_failing_1tag_WP.begin(), jets_failing_1tag_WP.end(), [](const xAOD::Jet *i, const xAOD::Jet *j) {
@@ -407,8 +407,8 @@ EL::StatusCode JetCutStudies::execute()
     m_m_jj_1tag_high_mass_without_booleans_with_cut85 = jj_p4.M() / HG::GeV;
     yyjj_p4 = yy_p4 + jj_p4;
     m_m_yyjj_1tag_high_mass_without_booleans_with_cut85 = yyjj_p4.M() / HG::GeV;
-    m_jet_pT1_1tag_high_mass_without_booleans_with_cut85 = std::max(jets_passing_1tag_WP.at(0)->pt(), jets_failing_1tag_WP.at(0)->pt());
-    m_jet_pT2_1tag_high_mass_without_booleans_with_cut85 = std::min(jets_passing_1tag_WP.at(0)->pt(), jets_failing_1tag_WP.at(0)->pt());
+    m_jet_pT1_1tag_high_mass_without_booleans_with_cut85 = std::max(jets_passing_1tag_WP.at(0)->pt(), jets_failing_1tag_WP.at(0)->pt()) / HG::GeV;
+    m_jet_pT2_1tag_high_mass_without_booleans_with_cut85 = std::min(jets_passing_1tag_WP.at(0)->pt(), jets_failing_1tag_WP.at(0)->pt()) / HG::GeV;
   }
 
   // Fill event-level tree

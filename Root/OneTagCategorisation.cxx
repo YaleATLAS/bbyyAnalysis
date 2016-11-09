@@ -64,8 +64,9 @@ EL::StatusCode OneTagCategorisation::initialize()
 {
   ATH_MSG_INFO("Initialising...");
   const auto sc = HgammaAnalysis::initialize();
-
   if (sc != EL::StatusCode::SUCCESS) { return sc; }
+
+  ATH_MSG_INFO("Reading configuration...");
 
   // Retrieve b-tagging working point
   m_1_tag_WP = config()->getStr("OneTagCategorisation.1tag.OperatingPoint", "MV2c10_FixedCutBEff_60");
