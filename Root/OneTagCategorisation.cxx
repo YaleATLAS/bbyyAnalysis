@@ -73,8 +73,9 @@ EL::StatusCode OneTagCategorisation::initialize()
 {
   ATH_MSG_INFO("Initialising...");
   const auto sc = HgammaAnalysis::initialize();
-
   if (sc != EL::StatusCode::SUCCESS) { return sc; }
+
+  ATH_MSG_INFO("Reading configuration...");
 
   // Retrieve b-tagging working point
   m_1_tag_WP = config()->getStr("OneTagCategorisation.1tag.OperatingPoint", "MV2c10_FixedCutBEff_60");
@@ -182,7 +183,7 @@ EL::StatusCode OneTagCategorisation::execute()
   // Get overall event weight, normalised to 1fb-1
   unsigned int mcChannelNumber = eventInfo()->mcChannelNumber();
   m_event_weight = eventHandler()->mcWeight() * CommonTools::luminosity_invfb() *
-                   CommonTools::xs_fb(mcChannelNumber, getCrossSection(mcChannelNumber), true) *
+                   CommonTools::xs_fb(mcChannelNumber, getCrossSection(mcChannelNumber)) *
                    HgammaAnalysis::getGeneratorEfficiency(mcChannelNumber) *
                    HgammaAnalysis::getKFactor(mcChannelNumber) / CommonTools::sumOfWeights(mcChannelNumber);
 

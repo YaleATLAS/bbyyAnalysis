@@ -22,7 +22,7 @@ private:
   TTree *m_event_tree; //!
 
   /// TMVA reader from scikit-learn XML output
-  TMVA::Reader m_reader_low_mass, m_reader_high_mass; //!
+  TMVA::Reader m_reader_low_mass_with_booleans, m_reader_high_mass_with_booleans; //!
   TMVA::Reader m_reader_low_mass_without_booleans, m_reader_high_mass_without_booleans; //!
   /// TMVA discriminators
   float m_abs_eta_j; //!
@@ -39,22 +39,48 @@ private:
 
   /// Output variables
   double m_m_yy; //!
-  unsigned int m_photon_n, m_jet_n; //!
-  std::vector<double> m_photon_pT, m_jet_pT; //!
-  std::vector<double> m_photon_eta, m_jet_eta, m_jet_eta_det; //!
-  std::vector<double> m_photon_phi, m_jet_phi; //!
-  std::vector<double> m_photon_E, m_jet_E; //!
-  std::vector<int> m_photon_isTight; //!
-  std::vector<int> m_jet_btag_1tag; //!
-  std::vector<int> m_jet_btag_2tag; //!
-  std::vector<int> m_jet_btag_85; //!
-  std::vector<double> m_jet_classifier_low_mass; //!
-  std::vector<double> m_jet_classifier_high_mass; //!
-  std::vector<double> m_jet_classifier_low_mass_without_booleans; //!
-  std::vector<double> m_jet_classifier_high_mass_without_booleans; //!
-  std::vector<int> m_jet_truth_tag; //!
-  std::vector<int> m_jet_higgs_match; //!
-  std::vector<double> m_jet_m_jb; //!
+  int m_tag_category; //!
+  // 2-tag
+  double m_jet_pT1_2tag; //!
+  double m_jet_pT2_2tag; //!
+  double m_m_jj_2tag; //!
+  double m_m_yyjj_2tag; //!
+  // 1-tag low mass with booleans
+  double m_score_1tag_low_mass_with_booleans; //!
+  double m_jet_pT1_1tag_low_mass_with_booleans; //!
+  double m_jet_pT2_1tag_low_mass_with_booleans; //!
+  double m_m_jj_1tag_low_mass_with_booleans; //!
+  double m_m_yyjj_1tag_low_mass_with_booleans; //!
+  // 1-tag high mass with booleans
+  double m_score_1tag_high_mass_with_booleans; //!
+  double m_jet_pT1_1tag_high_mass_with_booleans; //!
+  double m_jet_pT2_1tag_high_mass_with_booleans; //!
+  double m_m_jj_1tag_high_mass_with_booleans; //!
+  double m_m_yyjj_1tag_high_mass_with_booleans; //!
+  // 1-tag low mass without booleans
+  double m_score_1tag_low_mass_without_booleans; //!
+  double m_jet_pT1_1tag_low_mass_without_booleans; //!
+  double m_jet_pT2_1tag_low_mass_without_booleans; //!
+  double m_m_jj_1tag_low_mass_without_booleans; //!
+  double m_m_yyjj_1tag_low_mass_without_booleans; //!
+  // 1-tag high mass without booleans
+  double m_score_1tag_high_mass_without_booleans; //!
+  double m_jet_pT1_1tag_high_mass_without_booleans; //!
+  double m_jet_pT2_1tag_high_mass_without_booleans; //!
+  double m_m_jj_1tag_high_mass_without_booleans; //!
+  double m_m_yyjj_1tag_high_mass_without_booleans; //!
+  // 1-tag low mass without booleans with cut on 85% WP
+  double m_score_1tag_low_mass_without_booleans_with_cut85; //!
+  double m_jet_pT1_1tag_low_mass_without_booleans_with_cut85; //!
+  double m_jet_pT2_1tag_low_mass_without_booleans_with_cut85; //!
+  double m_m_jj_1tag_low_mass_without_booleans_with_cut85; //!
+  double m_m_yyjj_1tag_low_mass_without_booleans_with_cut85; //!
+  // 1-tag high mass without booleans with cut on 85% WP
+  double m_score_1tag_high_mass_without_booleans_with_cut85; //!
+  double m_jet_pT1_1tag_high_mass_without_booleans_with_cut85; //!
+  double m_jet_pT2_1tag_high_mass_without_booleans_with_cut85; //!
+  double m_m_jj_1tag_high_mass_without_booleans_with_cut85; //!
+  double m_m_yyjj_1tag_high_mass_without_booleans_with_cut85; //!
 
   /// Event weights
   double m_event_weight; //!
@@ -64,7 +90,7 @@ private:
   std::map< std::string, unsigned int > m_cutFlow; //!
 
 
-  void decorateWithClassifier( const xAOD::Jet& bjet, xAOD::JetContainer& nonbjets );
+  void decorateWithClassifiers( const xAOD::Jet& bjet, xAOD::JetContainer& nonbjets );
 
 public:
   // this is a standard constructor

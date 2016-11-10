@@ -13,6 +13,7 @@
 #include <AsgTools/MsgStream.h>
 #include <AsgTools/MsgStreamMacros.h>
 #include <boost/format.hpp>
+#include <algorithm>
 
 // this is needed to distribute the algorithm to the workers
 ClassImp(JetCutStudies)
@@ -22,8 +23,8 @@ JetCutStudies::JetCutStudies(const char *name)
   , m_1_tag_WP("")
   , m_2_tag_WP("")
   , m_event_tree(0)
-  , m_reader_low_mass()
-  , m_reader_high_mass()
+  , m_reader_low_mass_with_booleans()
+  , m_reader_high_mass_with_booleans()
   , m_reader_low_mass_without_booleans()
   , m_reader_high_mass_without_booleans()
   , m_abs_eta_j(0)
@@ -55,7 +56,7 @@ JetCutStudies::JetCutStudies(const char *name)
 JetCutStudies::~JetCutStudies()
 {
   // Here you delete any memory you allocated during your analysis.
-  // if (m_reader_low_mass) { delete m_reader_low_mass; }
+  // if (m_reader_low_mass_with_booleans) { delete m_reader_low_mass_with_booleans; }
 }
 
 /**
@@ -77,33 +78,33 @@ EL::StatusCode JetCutStudies::initialize()
   ATH_MSG_INFO("2-tag operating point......................... " << m_2_tag_WP );
 
   // Setup TMVA readers
-  ATH_MSG_INFO("Initialising TMVA reader: low mass");
-  m_reader_low_mass.AddVariable("abs_eta_j",    &m_abs_eta_j);
-  m_reader_low_mass.AddVariable("abs_eta_jb",   &m_abs_eta_jb);
-  m_reader_low_mass.AddVariable("Delta_eta_jb", &m_Delta_eta_jb);
-  m_reader_low_mass.AddVariable("idx_by_mH",    &m_idx_by_mH);
-  m_reader_low_mass.AddVariable("idx_by_pT",    &m_idx_by_pT);
-  m_reader_low_mass.AddVariable("idx_by_pT_jb", &m_idx_by_pT_jb);
-  m_reader_low_mass.AddVariable("m_jb",         &m_m_jb);
-  m_reader_low_mass.AddVariable("passes_WP77",  &m_passes_WP77);
-  m_reader_low_mass.AddVariable("passes_WP85",  &m_passes_WP85);
-  m_reader_low_mass.AddVariable("pT_j",         &m_pT_j);
-  m_reader_low_mass.AddVariable("pT_jb",        &m_pT_jb);
-  m_reader_low_mass.BookMVA("OneTagClassifier_low_mass", PathResolverFindCalibFile("bbyyAnalysis/MVA_config_hh2yybb_low_mass_with_booleans.xml") );
+  ATH_MSG_INFO("Initialising TMVA reader: low mass [with booleans]");
+  m_reader_low_mass_with_booleans.AddVariable("abs_eta_j",    &m_abs_eta_j);
+  m_reader_low_mass_with_booleans.AddVariable("abs_eta_jb",   &m_abs_eta_jb);
+  m_reader_low_mass_with_booleans.AddVariable("Delta_eta_jb", &m_Delta_eta_jb);
+  m_reader_low_mass_with_booleans.AddVariable("idx_by_mH",    &m_idx_by_mH);
+  m_reader_low_mass_with_booleans.AddVariable("idx_by_pT",    &m_idx_by_pT);
+  m_reader_low_mass_with_booleans.AddVariable("idx_by_pT_jb", &m_idx_by_pT_jb);
+  m_reader_low_mass_with_booleans.AddVariable("m_jb",         &m_m_jb);
+  m_reader_low_mass_with_booleans.AddVariable("passes_WP77",  &m_passes_WP77);
+  m_reader_low_mass_with_booleans.AddVariable("passes_WP85",  &m_passes_WP85);
+  m_reader_low_mass_with_booleans.AddVariable("pT_j",         &m_pT_j);
+  m_reader_low_mass_with_booleans.AddVariable("pT_jb",        &m_pT_jb);
+  m_reader_low_mass_with_booleans.BookMVA("OneTagClassifier_low_mass_with_booleans", PathResolverFindCalibFile("bbyyAnalysis/MVA_config_hh2yybb_low_mass_with_booleans.xml") );
 
-  ATH_MSG_INFO("Initialising TMVA reader: high mass");
-  m_reader_high_mass.AddVariable("abs_eta_j",      &m_abs_eta_j);
-  m_reader_high_mass.AddVariable("abs_eta_jb",     &m_abs_eta_jb);
-  m_reader_high_mass.AddVariable("Delta_eta_jb",   &m_Delta_eta_jb);
-  m_reader_high_mass.AddVariable("idx_by_mH",      &m_idx_by_mH);
-  m_reader_high_mass.AddVariable("idx_by_pT",      &m_idx_by_pT);
-  m_reader_high_mass.AddVariable("idx_by_pT_jb",   &m_idx_by_pT_jb);
-  m_reader_high_mass.AddVariable("m_jb",           &m_m_jb);
-  m_reader_high_mass.AddVariable("passes_WP77",  &m_passes_WP77);
-  m_reader_high_mass.AddVariable("passes_WP85",  &m_passes_WP85);
-  m_reader_high_mass.AddVariable("pT_j",           &m_pT_j);
-  m_reader_high_mass.AddVariable("pT_jb",          &m_pT_jb);
-  m_reader_high_mass.BookMVA("OneTagClassifier_high_mass", PathResolverFindCalibFile("bbyyAnalysis/MVA_config_hh2yybb_high_mass_with_booleans.xml") );
+  ATH_MSG_INFO("Initialising TMVA reader: high mass [with booleans]");
+  m_reader_high_mass_with_booleans.AddVariable("abs_eta_j",      &m_abs_eta_j);
+  m_reader_high_mass_with_booleans.AddVariable("abs_eta_jb",     &m_abs_eta_jb);
+  m_reader_high_mass_with_booleans.AddVariable("Delta_eta_jb",   &m_Delta_eta_jb);
+  m_reader_high_mass_with_booleans.AddVariable("idx_by_mH",      &m_idx_by_mH);
+  m_reader_high_mass_with_booleans.AddVariable("idx_by_pT",      &m_idx_by_pT);
+  m_reader_high_mass_with_booleans.AddVariable("idx_by_pT_jb",   &m_idx_by_pT_jb);
+  m_reader_high_mass_with_booleans.AddVariable("m_jb",           &m_m_jb);
+  m_reader_high_mass_with_booleans.AddVariable("passes_WP77",    &m_passes_WP77);
+  m_reader_high_mass_with_booleans.AddVariable("passes_WP85",    &m_passes_WP85);
+  m_reader_high_mass_with_booleans.AddVariable("pT_j",           &m_pT_j);
+  m_reader_high_mass_with_booleans.AddVariable("pT_jb",          &m_pT_jb);
+  m_reader_high_mass_with_booleans.BookMVA("OneTagClassifier_high_mass_with_booleans", PathResolverFindCalibFile("bbyyAnalysis/MVA_config_hh2yybb_high_mass_with_booleans.xml") );
 
   ATH_MSG_INFO("Initialising TMVA reader: low mass [without booleans]");
   m_reader_low_mass_without_booleans.AddVariable("abs_eta_j",    &m_abs_eta_j);
@@ -152,30 +153,50 @@ EL::StatusCode JetCutStudies::createOutput()
   // Add event tree to output file
   m_event_tree = new TTree("events", "events");
   m_event_tree->SetDirectory(file);
-  m_event_tree->Branch("photon_n",                 &m_photon_n);
-  m_event_tree->Branch("photon_pT",                &m_photon_pT);
-  m_event_tree->Branch("photon_eta",               &m_photon_eta);
-  m_event_tree->Branch("photon_phi",               &m_photon_phi);
-  m_event_tree->Branch("photon_E",                 &m_photon_E);
-  m_event_tree->Branch("photon_isTight",           &m_photon_isTight);
-  m_event_tree->Branch("m_yy",                     &m_m_yy);
-  m_event_tree->Branch("jet_n",                    &m_jet_n);
-  m_event_tree->Branch("jet_pT",                   &m_jet_pT);
-  m_event_tree->Branch("jet_eta",                  &m_jet_eta);
-  m_event_tree->Branch("jet_phi",                  &m_jet_phi);
-  m_event_tree->Branch("jet_E",                    &m_jet_E);
-  m_event_tree->Branch("jet_btag_1tag",            &m_jet_btag_1tag);
-  m_event_tree->Branch("jet_btag_2tag",            &m_jet_btag_2tag);
-  m_event_tree->Branch("jet_btag_85",              &m_jet_btag_85);
-  m_event_tree->Branch("jet_classifier_low_mass",  &m_jet_classifier_low_mass);
-  m_event_tree->Branch("jet_classifier_high_mass", &m_jet_classifier_high_mass);
-  m_event_tree->Branch("jet_classifier_low_mass_without_booleans",  &m_jet_classifier_low_mass_without_booleans);
-  m_event_tree->Branch("jet_classifier_high_mass_without_booleans", &m_jet_classifier_high_mass_without_booleans);
-  m_event_tree->Branch("jet_truth_tag",            &m_jet_truth_tag);
-  m_event_tree->Branch("jet_higgs_match",          &m_jet_higgs_match);
-  m_event_tree->Branch("jet_eta_det",              &m_jet_eta_det);
-  m_event_tree->Branch("jet_m_jb",                 &m_jet_m_jb);
-  m_event_tree->Branch("event_weight",             &m_event_weight);
+  m_event_tree->Branch("m_yy",                                               &m_m_yy);
+  m_event_tree->Branch("tag_category",                                       &m_tag_category);
+  m_event_tree->Branch("event_weight",                                       &m_event_weight);
+  // 2-tag
+  m_event_tree->Branch("jet_pT1_2tag",                                       &m_jet_pT1_2tag);
+  m_event_tree->Branch("jet_pT2_2tag",                                       &m_jet_pT2_2tag);
+  m_event_tree->Branch("m_jj_2tag",                                          &m_m_jj_2tag);
+  m_event_tree->Branch("m_yyjj_2tag",                                        &m_m_yyjj_2tag);
+  // 1-tag low mass with booleans
+  m_event_tree->Branch("score_1tag_low_mass_with_booleans",                  &m_score_1tag_low_mass_with_booleans);
+  m_event_tree->Branch("jet_pT1_1tag_low_mass_with_booleans",                &m_jet_pT1_1tag_low_mass_with_booleans);
+  m_event_tree->Branch("jet_pT2_1tag_low_mass_with_booleans",                &m_jet_pT1_1tag_low_mass_with_booleans);
+  m_event_tree->Branch("m_jj_1tag_low_mass_with_booleans",                   &m_m_jj_1tag_low_mass_with_booleans);
+  m_event_tree->Branch("m_yyjj_1tag_low_mass_with_booleans",                 &m_m_yyjj_1tag_low_mass_with_booleans);
+  // 1-tag high mass with booleans
+  m_event_tree->Branch("score_1tag_high_mass_with_booleans",                 &m_score_1tag_high_mass_with_booleans);
+  m_event_tree->Branch("jet_pT1_1tag_high_mass_with_booleans",               &m_jet_pT2_1tag_high_mass_with_booleans);
+  m_event_tree->Branch("jet_pT2_1tag_high_mass_with_booleans",               &m_jet_pT2_1tag_high_mass_with_booleans);
+  m_event_tree->Branch("m_jj_1tag_high_mass_with_booleans",                  &m_m_jj_1tag_high_mass_with_booleans);
+  m_event_tree->Branch("m_yyjj_1tag_high_mass_with_booleans",                &m_m_yyjj_1tag_high_mass_with_booleans);
+  // 1-tag low mass without booleans
+  m_event_tree->Branch("score_1tag_low_mass_without_booleans",               &m_score_1tag_low_mass_without_booleans);
+  m_event_tree->Branch("jet_pT1_1tag_low_mass_without_booleans",             &m_jet_pT1_1tag_low_mass_without_booleans);
+  m_event_tree->Branch("jet_pT2_1tag_low_mass_without_booleans",             &m_jet_pT1_1tag_low_mass_without_booleans);
+  m_event_tree->Branch("m_jj_1tag_low_mass_without_booleans",                &m_m_jj_1tag_low_mass_without_booleans);
+  m_event_tree->Branch("m_yyjj_1tag_low_mass_without_booleans",              &m_m_yyjj_1tag_low_mass_without_booleans);
+  // 1-tag high mass without booleans
+  m_event_tree->Branch("score_1tag_high_mass_without_booleans",              &m_score_1tag_high_mass_without_booleans);
+  m_event_tree->Branch("jet_pT1_1tag_high_mass_without_booleans",            &m_jet_pT2_1tag_high_mass_without_booleans);
+  m_event_tree->Branch("jet_pT2_1tag_high_mass_without_booleans",            &m_jet_pT2_1tag_high_mass_without_booleans);
+  m_event_tree->Branch("m_jj_1tag_high_mass_without_booleans",               &m_m_jj_1tag_high_mass_without_booleans);
+  m_event_tree->Branch("m_yyjj_1tag_high_mass_without_booleans",             &m_m_yyjj_1tag_high_mass_without_booleans);
+  // 1-tag low mass without booleans with cut on 85% WP
+  m_event_tree->Branch("score_1tag_low_mass_without_booleans_with_cut85",    &m_score_1tag_low_mass_without_booleans_with_cut85);
+  m_event_tree->Branch("jet_pT1_1tag_low_mass_without_booleans_with_cut85",  &m_jet_pT1_1tag_low_mass_without_booleans_with_cut85);
+  m_event_tree->Branch("jet_pT2_1tag_low_mass_without_booleans_with_cut85",  &m_jet_pT1_1tag_low_mass_without_booleans_with_cut85);
+  m_event_tree->Branch("m_jj_1tag_low_mass_without_booleans_with_cut85",     &m_m_jj_1tag_low_mass_without_booleans_with_cut85);
+  m_event_tree->Branch("m_yyjj_1tag_low_mass_without_booleans_with_cut85",   &m_m_yyjj_1tag_low_mass_without_booleans_with_cut85);
+  // 1-tag high mass without booleans with cut on 85% WP
+  m_event_tree->Branch("score_1tag_high_mass_without_booleans_with_cut85",   &m_score_1tag_high_mass_without_booleans_with_cut85);
+  m_event_tree->Branch("jet_pT1_1tag_high_mass_without_booleans_with_cut85", &m_jet_pT2_1tag_high_mass_without_booleans_with_cut85);
+  m_event_tree->Branch("jet_pT2_1tag_high_mass_without_booleans_with_cut85", &m_jet_pT2_1tag_high_mass_without_booleans_with_cut85);
+  m_event_tree->Branch("m_jj_1tag_high_mass_without_booleans_with_cut85",    &m_m_jj_1tag_high_mass_without_booleans_with_cut85);
+  m_event_tree->Branch("m_yyjj_1tag_high_mass_without_booleans_with_cut85",  &m_m_yyjj_1tag_high_mass_without_booleans_with_cut85);
   return EL::StatusCode::SUCCESS;
 }
 
@@ -193,7 +214,6 @@ EL::StatusCode JetCutStudies::execute()
   // Important to keep this, so that internal tools / event variables
   // are filled properly.
   const auto sc = HgammaAnalysis::execute();
-
   if (sc != EL::StatusCode::SUCCESS) { return sc; }
 
   // Get MC weight
@@ -207,12 +227,11 @@ EL::StatusCode JetCutStudies::execute()
     // Get overall event weight, normalised to 1fb-1
     unsigned int mcChannelNumber = eventInfo()->mcChannelNumber();
     m_event_weight = eventHandler()->mcWeight() * eventHandler()->pileupWeight() * eventHandler()->vertexWeight() *
-                     CommonTools::luminosity_invfb() * CommonTools::xs_fb(mcChannelNumber, getCrossSection(mcChannelNumber), false) *
+                     CommonTools::luminosity_invfb() * CommonTools::xs_fb(mcChannelNumber, getCrossSection(mcChannelNumber)) *
                      HgammaAnalysis::getGeneratorEfficiency(mcChannelNumber) *
                      HgammaAnalysis::getKFactor(mcChannelNumber) / CommonTools::sumOfWeights(mcChannelNumber);
     m_sum_pileup_weights += eventHandler()->pileupWeight();
   }
-
 
   // ___________________________________________________________________________________________
   // Retrieve truth Higgs bosons
@@ -254,27 +273,28 @@ EL::StatusCode JetCutStudies::execute()
   // Perform matching between jet-pairs and Higgs
   CommonTools::decorateHiggsMatching( jets_selected, higgsBosons );
 
-  // Clear vectors
-  m_photon_E.clear(); m_photon_pT.clear(); m_photon_eta.clear(); m_photon_phi.clear();
-  m_photon_isTight.clear();
-
-  // Fill photon information into tree
-  m_photon_n = photons_selected.size();
+  // Require photons to pass FixedCutLoose
+  xAOD::PhotonContainer photons_passing_isolation(SG::VIEW_ELEMENTS);
   for (auto photon : photons_selected) {
-    m_photon_E.push_back( photon->e() / HG::GeV );
-    m_photon_pT.push_back( photon->pt() / HG::GeV );
-    m_photon_eta.push_back( photon->eta() );
-    m_photon_phi.push_back( photon->phi() );
-    m_photon_isTight.push_back( bool(photonHandler()->passIsoCut(photon, HG::Iso::FixedCutTight)) );
+    if (photonHandler()->passIsoCut(photon, HG::Iso::FixedCutTight)) {
+      photons_passing_isolation.push_back(photon);
+    }
   }
 
-  // Add diphoton mass as cross-check
-  if (photons_selected.size() < 2) {
-    m_m_yy = -1;
-  } else {
-    TLorentzVector yy_p4 = photons_selected.at(0)->p4() + photons_selected.at(1)->p4();
-    m_m_yy = yy_p4.M() / HG::GeV;
-  }
+  // Save diphoton mass
+  if (photons_passing_isolation.size() < 2) { return StatusCode::SUCCESS; }
+  TLorentzVector yy_p4 = photons_passing_isolation.at(0)->p4() + photons_passing_isolation.at(1)->p4();
+  m_m_yy = yy_p4.M() / HG::GeV;
+
+  // Initialise all output variables
+  m_tag_category = -99;
+  m_jet_pT1_2tag = -99; m_jet_pT2_2tag = -99; m_m_jj_2tag = -99; m_m_yyjj_2tag = -99;
+  m_score_1tag_low_mass_with_booleans = -99; m_jet_pT1_1tag_low_mass_with_booleans = -99; m_jet_pT2_1tag_low_mass_with_booleans = -99; m_m_jj_1tag_low_mass_with_booleans = -99; m_m_yyjj_1tag_low_mass_with_booleans = -99;
+  m_score_1tag_high_mass_with_booleans = -99; m_jet_pT1_1tag_high_mass_with_booleans = -99; m_jet_pT2_1tag_high_mass_with_booleans = -99; m_m_jj_1tag_high_mass_with_booleans = -99; m_m_yyjj_1tag_high_mass_with_booleans = -99;
+  m_score_1tag_low_mass_without_booleans = -99; m_jet_pT1_1tag_low_mass_without_booleans = -99; m_jet_pT2_1tag_low_mass_without_booleans = -99; m_m_jj_1tag_low_mass_without_booleans = -99; m_m_yyjj_1tag_low_mass_without_booleans = -99;
+  m_score_1tag_high_mass_without_booleans = -99; m_jet_pT1_1tag_high_mass_without_booleans = -99; m_jet_pT2_1tag_high_mass_without_booleans = -99; m_m_jj_1tag_high_mass_without_booleans = -99; m_m_yyjj_1tag_high_mass_without_booleans = -99;
+  m_score_1tag_low_mass_without_booleans_with_cut85 = -99; m_jet_pT1_1tag_low_mass_without_booleans_with_cut85 = -99; m_jet_pT2_1tag_low_mass_without_booleans_with_cut85 = -99; m_m_jj_1tag_low_mass_without_booleans_with_cut85 = -99; m_m_yyjj_1tag_low_mass_without_booleans_with_cut85 = -99;
+  m_score_1tag_high_mass_without_booleans_with_cut85 = -99; m_jet_pT1_1tag_high_mass_without_booleans_with_cut85 = -99; m_jet_pT2_1tag_high_mass_without_booleans_with_cut85 = -99; m_m_jj_1tag_high_mass_without_booleans_with_cut85 = -99; m_m_yyjj_1tag_high_mass_without_booleans_with_cut85 = -99;
 
   // ___________________________________________________________________________________________
   // Construct b-jet containers
@@ -283,8 +303,8 @@ EL::StatusCode JetCutStudies::execute()
   xAOD::JetContainer jets_failing_1tag_WP(SG::VIEW_ELEMENTS);
 
   // Initialise 1-tag classifier to false and fill b-jet containers
-  SG::AuxElement::Accessor<double> accOneTagClassifierLowMass("OneTagClassifier_low_mass");
-  SG::AuxElement::Accessor<double> accOneTagClassifierHighMass("OneTagClassifier_high_mass");
+  SG::AuxElement::Accessor<double> accOneTagClassifierLowMass("OneTagClassifier_low_mass_with_booleans");
+  SG::AuxElement::Accessor<double> accOneTagClassifierHighMass("OneTagClassifier_high_mass_with_booleans");
   SG::AuxElement::Accessor<double> accOneTagClassifierLowMassWithoutBooleans("OneTagClassifier_low_mass_without_booleans");
   SG::AuxElement::Accessor<double> accOneTagClassifierHighMassWithoutBooleans("OneTagClassifier_high_mass_without_booleans");
   SG::AuxElement::Accessor<double> accMjb("m_jb");
@@ -296,48 +316,99 @@ EL::StatusCode JetCutStudies::execute()
     else { jets_failing_1tag_WP.push_back(jet); }
   }
 
-  // Decorate only 1-tag events with classifier
-  if (jets_passing_2tag_WP.size() < 2 && jets_passing_1tag_WP.size() == 1) {
-    decorateWithClassifier(*jets_passing_1tag_WP.at(0), jets_failing_1tag_WP);
-  }
+  // Select b-tagging category
+  if (jets_passing_2tag_WP.size() > 2) { m_tag_category = 3; }
+  else if (jets_passing_2tag_WP.size() == 2) { m_tag_category = 2; }
+  else if ((jets_passing_1tag_WP.size() == 1) && (jets_failing_1tag_WP.size() >= 1)) { m_tag_category = 1; }
+  else if (jets_failing_1tag_WP.size() >= 2) { m_tag_category = 0; }
 
-  // Clear vectors
-  m_jet_E.clear(); m_jet_pT.clear(); m_jet_eta.clear(); m_jet_phi.clear();
-  m_jet_btag_1tag.clear(); m_jet_btag_2tag.clear(); m_jet_btag_85.clear(); m_jet_truth_tag.clear();
-  m_jet_higgs_match.clear(); m_jet_eta_det.clear(); m_jet_m_jb.clear();
-  m_jet_classifier_low_mass.clear(); m_jet_classifier_high_mass.clear();
-  m_jet_classifier_low_mass_without_booleans.clear(); m_jet_classifier_high_mass_without_booleans.clear();
+  // Initialise 4-vectors
+  TLorentzVector jj_p4, yyjj_p4;
 
-  // Fill jet information into tree
-  m_jet_n = jets_selected.size();
-  ATH_MSG_DEBUG( "Found " << jets_passing_1tag_WP.size() << " jets passing the 1-tag WP and " << jets_passing_2tag_WP.size() << " passing the 2-tag WP." );
-  for( const auto& jet : jets_selected ) {
-    m_jet_E.push_back( jet->auxdata<double>("muon_E") / HG::GeV );
-    m_jet_pT.push_back( jet->auxdata<double>("muon_pT") / HG::GeV );
-    m_jet_eta.push_back( jet->auxdata<double>("muon_eta") );
-    m_jet_phi.push_back( jet->auxdata<double>("muon_phi") );
-    m_jet_btag_1tag.push_back( jet->auxdata<char>(m_1_tag_WP) ? 1 : 0 );
-    m_jet_btag_2tag.push_back( jet->auxdata<char>(m_2_tag_WP) ? 1 : 0 );
-    m_jet_btag_85.push_back( jet->auxdata<char>("MV2c10_FixedCutBEff_85") ? 1 : 0 );
-    m_jet_truth_tag.push_back( jet->auxdata<int>("HadronConeExclTruthLabelID") == 5  ? 1 : 0 );
-    m_jet_higgs_match.push_back( jet->auxdata<char>("HiggsMatched")  ? 1 : 0 );
-    //m_jet_JVT.push_back( jet->auxdata<float>("Jvt") );
-    m_jet_m_jb.push_back( jet->auxdata<double>("m_jb") );
-    m_jet_classifier_low_mass.push_back( jet->auxdata<double>("OneTagClassifier_low_mass") );
-    m_jet_classifier_high_mass.push_back( jet->auxdata<double>("OneTagClassifier_high_mass") );
-    m_jet_classifier_low_mass_without_booleans.push_back( jet->auxdata<double>("OneTagClassifier_low_mass_without_booleans") );
-    m_jet_classifier_high_mass_without_booleans.push_back( jet->auxdata<double>("OneTagClassifier_high_mass_without_booleans") );
-    if(isMAOD()) {
-      m_jet_eta_det.push_back( jet->auxdata<float>("DetectorEta") );
-    } else {
-      m_jet_eta_det.push_back( jet->getAttribute<xAOD::JetFourMom_t>("JetConstitScaleMomentum").eta() );
-    }
-    ATH_MSG_DEBUG("... found jet b-tagged: " << (jet->auxdata<char>(m_1_tag_WP) ? "1TAG" : jet->auxdata<char>(m_2_tag_WP) ? "2TAG" : jet->auxdata<char>("MV2c10_FixedCutBEff_77") ? "77" : jet->auxdata<char>("MV2c10_FixedCutBEff_85") ? "85" : "NO")
-                 << " and HiggsMatched: " << (jet->auxdata<char>("HiggsMatched") ? "YES" : "NO")
-                 << " with classifiers: low-mass = " << jet->auxdata<double>("OneTagClassifier_low_mass")
-                                  << ", high-mass =" << jet->auxdata<double>("OneTagClassifier_high_mass")
-                                  << ", low-mass [without booleans] = " << jet->auxdata<double>("OneTagClassifier_low_mass_without_booleans")
-                                  << ", high-mass [without booleans] =" << jet->auxdata<double>("OneTagClassifier_high_mass_without_booleans") );
+  // Consider 2-tag category (easiest) first
+  if (m_tag_category == 2) {
+    jj_p4 = jets_passing_2tag_WP.at(0)->p4() + jets_passing_2tag_WP.at(1)->p4();
+    m_m_jj_2tag = jj_p4.M() / HG::GeV;
+    yyjj_p4 = yy_p4 + jj_p4;
+    m_m_yyjj_2tag = yyjj_p4.M() / HG::GeV;
+    m_jet_pT1_2tag = std::max(jets_passing_2tag_WP.at(0)->pt(), jets_passing_2tag_WP.at(1)->pt()) / HG::GeV;
+    m_jet_pT2_2tag = std::min(jets_passing_2tag_WP.at(0)->pt(), jets_passing_2tag_WP.at(1)->pt()) / HG::GeV;
+
+  // 1-tag events need to have jets decorated with the classifiers
+  } else if (m_tag_category == 1) {
+    decorateWithClassifiers(*jets_passing_1tag_WP.at(0), jets_failing_1tag_WP);
+
+    // Low mass with booleans
+    std::sort(jets_failing_1tag_WP.begin(), jets_failing_1tag_WP.end(), [](const xAOD::Jet *i, const xAOD::Jet *j) {
+      return i->auxdata<double>("OneTagClassifier_low_mass_with_booleans") > j->auxdata<double>("OneTagClassifier_low_mass_with_booleans");
+    });
+    m_score_1tag_low_mass_with_booleans = jets_failing_1tag_WP.at(0)->auxdata<double>("OneTagClassifier_low_mass_with_booleans");
+    jj_p4 = jets_passing_1tag_WP.at(0)->p4() + jets_failing_1tag_WP.at(0)->p4();
+    m_m_jj_1tag_low_mass_with_booleans = jj_p4.M() / HG::GeV;
+    yyjj_p4 = yy_p4 + jj_p4;
+    m_m_yyjj_1tag_low_mass_with_booleans = yyjj_p4.M() / HG::GeV;
+    m_jet_pT1_1tag_low_mass_with_booleans = std::max(jets_passing_1tag_WP.at(0)->pt(), jets_failing_1tag_WP.at(0)->pt()) / HG::GeV;
+    m_jet_pT2_1tag_low_mass_with_booleans = std::min(jets_passing_1tag_WP.at(0)->pt(), jets_failing_1tag_WP.at(0)->pt()) / HG::GeV;
+
+    // Low mass without booleans
+    std::sort(jets_failing_1tag_WP.begin(), jets_failing_1tag_WP.end(), [](const xAOD::Jet *i, const xAOD::Jet *j) {
+      return i->auxdata<double>("OneTagClassifier_low_mass_without_booleans") > j->auxdata<double>("OneTagClassifier_low_mass_without_booleans");
+    });
+    m_score_1tag_low_mass_without_booleans = jets_failing_1tag_WP.at(0)->auxdata<double>("OneTagClassifier_low_mass_without_booleans");
+    jj_p4 = jets_passing_1tag_WP.at(0)->p4() + jets_failing_1tag_WP.at(0)->p4();
+    m_m_jj_1tag_low_mass_without_booleans = jj_p4.M() / HG::GeV;
+    yyjj_p4 = yy_p4 + jj_p4;
+    m_m_yyjj_1tag_low_mass_without_booleans = yyjj_p4.M() / HG::GeV;
+    m_jet_pT1_1tag_low_mass_without_booleans = std::max(jets_passing_1tag_WP.at(0)->pt(), jets_failing_1tag_WP.at(0)->pt()) / HG::GeV;
+    m_jet_pT2_1tag_low_mass_without_booleans = std::min(jets_passing_1tag_WP.at(0)->pt(), jets_failing_1tag_WP.at(0)->pt()) / HG::GeV;
+
+    // Low mass without booleans with requirement on 85% WP
+    std::sort(jets_failing_1tag_WP.begin(), jets_failing_1tag_WP.end(), [](const xAOD::Jet *i, const xAOD::Jet *j) {
+      return i->auxdata<double>("OneTagClassifier_low_mass_without_booleans_with_cut85") > j->auxdata<double>("OneTagClassifier_low_mass_without_booleans_with_cut85");
+    });
+    m_score_1tag_low_mass_without_booleans_with_cut85 = jets_failing_1tag_WP.at(0)->auxdata<double>("OneTagClassifier_low_mass_without_booleans_with_cut85");
+    jj_p4 = jets_passing_1tag_WP.at(0)->p4() + jets_failing_1tag_WP.at(0)->p4();
+    m_m_jj_1tag_low_mass_without_booleans_with_cut85 = jj_p4.M() / HG::GeV;
+    yyjj_p4 = yy_p4 + jj_p4;
+    m_m_yyjj_1tag_low_mass_without_booleans_with_cut85 = yyjj_p4.M() / HG::GeV;
+    m_jet_pT1_1tag_low_mass_without_booleans_with_cut85 = std::max(jets_passing_1tag_WP.at(0)->pt(), jets_failing_1tag_WP.at(0)->pt()) / HG::GeV;
+    m_jet_pT2_1tag_low_mass_without_booleans_with_cut85 = std::min(jets_passing_1tag_WP.at(0)->pt(), jets_failing_1tag_WP.at(0)->pt()) / HG::GeV;
+
+    // High mass with booleans
+    std::sort(jets_failing_1tag_WP.begin(), jets_failing_1tag_WP.end(), [](const xAOD::Jet *i, const xAOD::Jet *j) {
+      return i->auxdata<double>("OneTagClassifier_high_mass_with_booleans") > j->auxdata<double>("OneTagClassifier_high_mass_with_booleans");
+    });
+    m_score_1tag_high_mass_with_booleans = jets_failing_1tag_WP.at(0)->auxdata<double>("OneTagClassifier_high_mass_with_booleans");
+    jj_p4 = jets_passing_1tag_WP.at(0)->p4() + jets_failing_1tag_WP.at(0)->p4();
+    m_m_jj_1tag_high_mass_with_booleans = jj_p4.M() / HG::GeV;
+    yyjj_p4 = yy_p4 + jj_p4;
+    m_m_yyjj_1tag_high_mass_with_booleans = yyjj_p4.M() / HG::GeV;
+    m_jet_pT1_1tag_high_mass_with_booleans = std::max(jets_passing_1tag_WP.at(0)->pt(), jets_failing_1tag_WP.at(0)->pt()) / HG::GeV;
+    m_jet_pT2_1tag_high_mass_with_booleans = std::min(jets_passing_1tag_WP.at(0)->pt(), jets_failing_1tag_WP.at(0)->pt()) / HG::GeV;
+
+    // High mass without booleans
+    std::sort(jets_failing_1tag_WP.begin(), jets_failing_1tag_WP.end(), [](const xAOD::Jet *i, const xAOD::Jet *j) {
+        return i->auxdata<double>("OneTagClassifier_high_mass_without_booleans") > j->auxdata<double>("OneTagClassifier_high_mass_without_booleans");
+    });
+    m_score_1tag_high_mass_without_booleans = jets_failing_1tag_WP.at(0)->auxdata<double>("OneTagClassifier_high_mass_without_booleans");
+    jj_p4 = jets_passing_1tag_WP.at(0)->p4() + jets_failing_1tag_WP.at(0)->p4();
+    m_m_jj_1tag_high_mass_without_booleans = jj_p4.M() / HG::GeV;
+    yyjj_p4 = yy_p4 + jj_p4;
+    m_m_yyjj_1tag_high_mass_without_booleans = yyjj_p4.M() / HG::GeV;
+    m_jet_pT1_1tag_high_mass_without_booleans = std::max(jets_passing_1tag_WP.at(0)->pt(), jets_failing_1tag_WP.at(0)->pt()) / HG::GeV;
+    m_jet_pT2_1tag_high_mass_without_booleans = std::min(jets_passing_1tag_WP.at(0)->pt(), jets_failing_1tag_WP.at(0)->pt()) / HG::GeV;
+
+    // High mass without booleans with requirement on 85% WP
+    std::sort(jets_failing_1tag_WP.begin(), jets_failing_1tag_WP.end(), [](const xAOD::Jet *i, const xAOD::Jet *j) {
+      return i->auxdata<double>("OneTagClassifier_high_mass_without_booleans_with_cut85") > j->auxdata<double>("OneTagClassifier_high_mass_without_booleans_with_cut85");
+    });
+    m_score_1tag_high_mass_without_booleans_with_cut85 = jets_failing_1tag_WP.at(0)->auxdata<double>("OneTagClassifier_high_mass_without_booleans_with_cut85");
+    jj_p4 = jets_passing_1tag_WP.at(0)->p4() + jets_failing_1tag_WP.at(0)->p4();
+    m_m_jj_1tag_high_mass_without_booleans_with_cut85 = jj_p4.M() / HG::GeV;
+    yyjj_p4 = yy_p4 + jj_p4;
+    m_m_yyjj_1tag_high_mass_without_booleans_with_cut85 = yyjj_p4.M() / HG::GeV;
+    m_jet_pT1_1tag_high_mass_without_booleans_with_cut85 = std::max(jets_passing_1tag_WP.at(0)->pt(), jets_failing_1tag_WP.at(0)->pt()) / HG::GeV;
+    m_jet_pT2_1tag_high_mass_without_booleans_with_cut85 = std::min(jets_passing_1tag_WP.at(0)->pt(), jets_failing_1tag_WP.at(0)->pt()) / HG::GeV;
   }
 
   // Fill event-level tree
@@ -350,7 +421,7 @@ EL::StatusCode JetCutStudies::execute()
  * Add jet pairing to event-level vectors
  * @return nothing
  */
-void JetCutStudies::decorateWithClassifier( const xAOD::Jet& bjet, xAOD::JetContainer& nonbjets ) {
+void JetCutStudies::decorateWithClassifiers( const xAOD::Jet& bjet, xAOD::JetContainer& nonbjets ) {
   // Add idx_by_mH and idx_by_pT decorations
   CommonTools::decorateWithIndices(bjet, nonbjets);
   for (auto otherjet : nonbjets) {
@@ -369,10 +440,12 @@ void JetCutStudies::decorateWithClassifier( const xAOD::Jet& bjet, xAOD::JetCont
     m_passes_WP85 = (otherjet->auxdata<char>("MV2c10_FixedCutBEff_85") ? 1.0 : 0.0);
     m_pT_j = j_p4.Pt() / HG::GeV;
     m_pT_jb = jb_p4.Pt() / HG::GeV;
-    otherjet->auxdata<double>("OneTagClassifier_low_mass") = m_reader_low_mass.EvaluateMVA("OneTagClassifier_low_mass");
-    otherjet->auxdata<double>("OneTagClassifier_high_mass") = m_reader_high_mass.EvaluateMVA("OneTagClassifier_high_mass");
+    otherjet->auxdata<double>("OneTagClassifier_low_mass_with_booleans") = m_reader_low_mass_with_booleans.EvaluateMVA("OneTagClassifier_low_mass_with_booleans");
+    otherjet->auxdata<double>("OneTagClassifier_high_mass_with_booleans") = m_reader_high_mass_with_booleans.EvaluateMVA("OneTagClassifier_high_mass_with_booleans");
     otherjet->auxdata<double>("OneTagClassifier_low_mass_without_booleans") = m_reader_low_mass_without_booleans.EvaluateMVA("OneTagClassifier_low_mass_without_booleans");
     otherjet->auxdata<double>("OneTagClassifier_high_mass_without_booleans") = m_reader_high_mass_without_booleans.EvaluateMVA("OneTagClassifier_high_mass_without_booleans");
+    otherjet->auxdata<double>("OneTagClassifier_low_mass_without_booleans_with_cut85") = (otherjet->auxdata<char>("MV2c10_FixedCutBEff_85") ? otherjet->auxdata<double>("OneTagClassifier_low_mass_without_booleans") : -99);
+    otherjet->auxdata<double>("OneTagClassifier_high_mass_without_booleans_with_cut85") = (otherjet->auxdata<char>("MV2c10_FixedCutBEff_85") ?  otherjet->auxdata<double>("OneTagClassifier_high_mass_without_booleans") : -99);
   }
 }
 
@@ -392,7 +465,6 @@ EL::StatusCode JetCutStudies::finalize() {
   // gets called on worker nodes that processed input events.
 
   const auto sc = HgammaAnalysis::finalize();
-
   if (sc != EL::StatusCode::SUCCESS) { return sc; }
 
   ATH_MSG_INFO("The sum of MC weights in this job for channel " << eventInfo()->mcChannelNumber() << " was " << m_sum_mc_weights << " from " << m_cutFlow["Events"]++ << " events.");
